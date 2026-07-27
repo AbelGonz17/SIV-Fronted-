@@ -1,5 +1,25 @@
 <script setup>
-import { RouterLink } from 'vue-router'
+import { computed } from 'vue'
+import { RouterLink, useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
+
+const authStore = useAuthStore()
+const router = useRouter()
+
+const handleLogout = () => {
+  authStore.logout()
+  router.push('/login')
+}
+
+// Obtener iniciales del usuario logueado
+const userInitials = computed(() => {
+  if (!authStore.user || !authStore.user.name) return 'U'
+  const parts = authStore.user.name.trim().split(/\s+/)
+  if (parts.length === 1) {
+    return parts[0].substring(0, 2).toUpperCase()
+  }
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+})
 </script>
 
 <template>
@@ -15,21 +35,51 @@ import { RouterLink } from 'vue-router'
         <span class="brand-name">SkyFlow</span>
       </RouterLink>
 
-      <!-- Navigation Links -->
-      <div class="navbar-links">
+      <!-- Navigation Links (Only visible if authenticated) -->
+      <div v-if="authStore.isAuthenticated" class="navbar-links">
         <RouterLink to="/" class="nav-link" active-class="active">
           <span>Panel de Vuelos</span>
-        </RouterLink>
-        <RouterLink to="/about" class="nav-link" active-class="active">
-          <span>Sobre Nosotros</span>
         </RouterLink>
       </div>
 
       <!-- Quick Action / User Profile -->
       <div class="navbar-actions">
-        <div class="system-status">
-          <span class="status-dot"></span>
-          <span class="status-text">Terminal En Línea</span>
+        <!-- Logged In User Control -->
+        <div v-if="authStore.isAuthenticated" class="user-control">
+          <!-- Server Status -->
+          <div class="system-status online">
+            <span class="status-dot"></span>
+            <span class="status-text">Terminal En Línea</span>
+          </div>
+
+          <!-- Profile Badge -->
+          <div class="profile-badge-group">
+            <div class="avatar" :title="`${authStore.user?.name} (${authStore.user?.role})`">
+              {{ userInitials }}
+            </div>
+            <div class="user-meta-desktop">
+              <span class="user-name">{{ authStore.user?.name }}</span>
+              <span class="user-role">{{ authStore.user?.role }}</span>
+            </div>
+          </div>
+
+          <!-- Logout Button -->
+          <button @click="handleLogout" class="btn-logout" title="Cerrar Sesión">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Logged Out Secure Indicator -->
+        <div v-else class="system-status offline">
+          <svg class="lock-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+          <span class="status-text">Acceso Restringido</span>
         </div>
       </div>
     </div>
@@ -131,17 +181,41 @@ import { RouterLink } from 'vue-router'
 .navbar-actions {
   display: flex;
   align-items: center;
-  gap: 1rem;
+}
+
+.user-control {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
 }
 
 .system-status {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: rgba(16, 185, 129, 0.1);
   padding: 0.4rem 0.8rem;
   border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.system-status.online {
+  background: rgba(16, 185, 129, 0.1);
   border: 1px solid rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+
+.system-status.offline {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
+.lock-icon {
+  width: 12px;
+  height: 12px;
 }
 
 .status-dot {
@@ -155,10 +229,77 @@ import { RouterLink } from 'vue-router'
 
 .status-text {
   font-size: 0.75rem;
+}
+
+/* Profile avatar */
+.profile-badge-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.avatar:hover {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: var(--color-primary);
+}
+
+.user-meta-desktop {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.user-name {
+  font-size: 0.85rem;
   font-weight: 600;
-  color: #10b981;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  color: white;
+}
+
+.user-role {
+  font-size: 0.7rem;
+  color: var(--color-text-secondary);
+}
+
+/* Logout button */
+.btn-logout {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  border-radius: 8px;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-logout svg {
+  width: 16px;
+  height: 16px;
+}
+
+.btn-logout:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.2);
 }
 
 @keyframes pulse {
@@ -176,11 +317,16 @@ import { RouterLink } from 'vue-router'
   }
 }
 
-@media (max-width: 640px) {
-  .system-status {
+@media (max-width: 768px) {
+  .user-meta-desktop {
     display: none;
   }
-  
+  .system-status.online {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
   .navbar-links {
     gap: 0.75rem;
   }
