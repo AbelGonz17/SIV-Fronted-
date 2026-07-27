@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useFlights } from '../composables/useFlights'
 import FlightCard from '../components/FlightCard.vue'
 
@@ -9,62 +9,97 @@ const {
   searchFilter,
   filteredFlights,
   stats,
-  fetchFlights
+  totalPages,
+  totalCount,
+  airlines,
+  fetchFlights,
+  fetchAirlines,
+  fetchFlightDetails
 } = useFlights()
 
-// Cargar vuelos al montar
+// Cargar catálogo y vuelos al montar
 onMounted(() => {
   fetchFlights()
+  fetchAirlines()
 })
 
-// Variables para el modal de reserva
-const showBookingModal = ref(false)
-const selectedFlight = ref(null)
-const passengerName = ref('')
-const passportNumber = ref('')
-const selectedClass = ref('Economy')
-const bookingConfirmed = ref(false)
-const bookingCode = ref('')
+// Observar cambios en los filtros de la API y recargar automáticamente
+watch(
+  () => [
+    searchFilter.value.esLlegada,
+    searchFilter.value.status,
+    searchFilter.value.fecha,
+    searchFilter.value.aerolineaId
+  ],
+  () => {
+    // Volver a la página 1 cuando cambia un filtro de búsqueda
+    searchFilter.value.pageNumber = 1
+    fetchFlights()
+  }
+)
 
-// Abrir modal de reserva
-const openBooking = (flight) => {
-  selectedFlight.value = flight
-  passengerName.value = ''
-  passportNumber.value = ''
-  selectedClass.value = 'Economy'
-  bookingConfirmed.value = false
-  showBookingModal.value = true
+// Observar cambios en la paginación
+watch(
+  () => searchFilter.value.pageNumber,
+  () => {
+    fetchFlights()
+  }
+)
+
+// Función para reiniciar todos los filtros
+const resetFilters = () => {
+  searchFilter.value = {
+    origin: '',
+    destination: '',
+    status: '',
+    esLlegada: '',
+    fecha: '',
+    aerolineaId: '',
+    pageNumber: 1,
+    pageSize: 20
+  }
+  fetchFlights()
 }
 
-// Confirmar reserva
-const confirmBooking = () => {
-  if (!passengerName.value || !passportNumber.value) {
-    alert('Por favor complete todos los datos del pasajero.')
-    return
-  }
+// Variables para el modal de detalles del vuelo
+const showDetailsModal = ref(false)
+const selectedDetails = ref(null)
+const loadingDetails = ref(false)
+const errorDetails = ref(null)
+
+// Abrir modal de detalles y cargar datos del backend
+const openFlightDetails = async (flightId) => {
+  loadingDetails.value = true
+  errorDetails.value = null
+  showDetailsModal.value = true
   
-  // Generar código de reserva aleatorio
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-  let code = ''
-  for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length))
+  try {
+    const details = await fetchFlightDetails(flightId)
+    selectedDetails.value = details
+  } catch (err) {
+    errorDetails.value = err.message || 'No se pudo cargar la información detallada de este vuelo.'
+  } finally {
+    loadingDetails.value = false
   }
-  bookingCode.value = code
-  bookingConfirmed.value = true
 }
 
-// Cerrar modal
-const closeModal = () => {
-  showBookingModal.value = false
-  selectedFlight.value = null
-  bookingConfirmed.value = false
+// Cerrar modal de detalles
+const closeDetailsModal = () => {
+  showDetailsModal.value = false
+  selectedDetails.value = null
+  errorDetails.value = null
 }
 
-// Formatear hora para el boleto
-const formatTime = (isoString) => {
+// Formatear fecha y hora para el modal
+const formatDateTime = (isoString) => {
+  if (!isoString) return '-'
   const date = new Date(isoString)
-  return date.toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit', hour12: false })
+  const dateStr = date.toLocaleDateString('es-DO', { month: 'short', day: 'numeric', year: 'numeric' })
+  const timeStr = date.toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit', hour12: false })
+  return `${dateStr} a las ${timeStr}`
 }
+
+
 </script>
 
 <template>
@@ -147,7 +182,7 @@ const formatTime = (isoString) => {
     <div class="dashboard-grid">
       <!-- Left Column: Flight List -->
       <div class="flights-section">
-        <h3 class="section-title">Listado de Vuelos Disponibles</h3>
+        <h3 class="section-title">Listado de Vuelos</h3>
         
         <!-- Loading State -->
         <div v-if="loading" class="loader-container glass-card">
@@ -179,8 +214,29 @@ const formatTime = (isoString) => {
             v-for="flight in filteredFlights" 
             :key="flight.id" 
             :flight="flight"
-            @book="openBooking"
+            @select="openFlightDetails"
           />
+          
+          <!-- Paginación -->
+          <div v-if="!loading && !error && filteredFlights.length > 0 && totalPages > 1" class="pagination-container glass-card">
+            <button 
+              class="btn btn-secondary btn-pagination" 
+              :disabled="searchFilter.pageNumber === 1"
+              @click="searchFilter.pageNumber--"
+            >
+              Anterior
+            </button>
+            <span class="pagination-info">
+              Página {{ searchFilter.pageNumber }} de {{ totalPages }} ({{ totalCount }} vuelos)
+            </span>
+            <button 
+              class="btn btn-secondary btn-pagination" 
+              :disabled="searchFilter.pageNumber === totalPages"
+              @click="searchFilter.pageNumber++"
+            >
+              Siguiente
+            </button>
+          </div>
         </div>
       </div>
 
@@ -189,44 +245,76 @@ const formatTime = (isoString) => {
         <div class="filters-card glass-card">
           <h3 class="filters-title">Filtros de Búsqueda</h3>
           <div class="filters-body">
-            <!-- Origin Filter -->
+            <!-- Tipo de Vuelo Filter (FIDS API) -->
             <div class="form-group">
-              <label class="form-label" for="filter-origin">Origen (Código o Ciudad)</label>
+              <label class="form-label" for="filter-type">Tipo de Vuelo</label>
+              <select id="filter-type" v-model="searchFilter.esLlegada" class="form-input select-input">
+                <option value="">Todos los vuelos</option>
+                <option value="true">Llegadas</option>
+                <option value="false">Salidas</option>
+              </select>
+            </div>
+
+            <!-- Date Filter (FIDS API) -->
+            <div class="form-group">
+              <label class="form-label" for="filter-date">Fecha de Operación</label>
+              <input 
+                id="filter-date" 
+                v-model="searchFilter.fecha"
+                type="date" 
+                class="form-input"
+              />
+            </div>
+
+            <!-- Airline Filter (FIDS API) -->
+            <div class="form-group">
+              <label class="form-label" for="filter-airline-id">Aerolínea</label>
+              <select id="filter-airline-id" v-model="searchFilter.aerolineaId" class="form-input select-input">
+                <option value="">Todas las aerolíneas</option>
+                <option v-for="a in airlines" :key="a.id" :value="a.id">
+                  {{ a.nombre }}
+                </option>
+              </select>
+            </div>
+
+            <!-- Status Filter (FIDS API) -->
+            <div class="form-group">
+              <label class="form-label" for="filter-status">Estado del Vuelo</label>
+              <select id="filter-status" v-model="searchFilter.status" class="form-input select-input">
+                <option value="">Todos los Estados</option>
+                <option value="Programado">Programado</option>
+                <option value="Abordando">Abordando</option>
+                <option value="Demorado">Demorado</option>
+                <option value="Cancelado">Cancelado</option>
+              </select>
+            </div>
+
+            <!-- Origin Filter (Local) -->
+            <div class="form-group">
+              <label class="form-label" for="filter-origin">Origen (Filtro rápido)</label>
               <input 
                 id="filter-origin" 
                 v-model="searchFilter.origin"
                 type="text" 
                 class="form-input" 
-                placeholder="Ej. SDQ, Punta Cana..."
+                placeholder="Ej. SDQ, Miami..."
               />
             </div>
 
-            <!-- Destination Filter -->
+            <!-- Destination Filter (Local) -->
             <div class="form-group">
-              <label class="form-label" for="filter-destination">Destino (Código o Ciudad)</label>
+              <label class="form-label" for="filter-destination">Destino (Filtro rápido)</label>
               <input 
                 id="filter-destination" 
                 v-model="searchFilter.destination"
                 type="text" 
                 class="form-input" 
-                placeholder="Ej. MIA, Madrid..."
+                placeholder="Ej. MIA, JFK..."
               />
             </div>
 
-            <!-- Status Filter -->
-            <div class="form-group">
-              <label class="form-label" for="filter-status">Estado del Vuelo</label>
-              <select id="filter-status" v-model="searchFilter.status" class="form-input select-input">
-                <option value="">Todos los Estados</option>
-                <option value="On Time">A Tiempo (On Time)</option>
-                <option value="Boarding">Abordando (Boarding)</option>
-                <option value="Delayed">Retrasado (Delayed)</option>
-                <option value="Cancelled">Cancelado (Cancelled)</option>
-              </select>
-            </div>
-
             <button 
-              @click="searchFilter = { origin: '', destination: '', status: '' }" 
+              @click="resetFilters" 
               class="btn btn-secondary btn-clear-filters"
             >
               Restablecer Filtros
@@ -236,153 +324,115 @@ const formatTime = (isoString) => {
       </aside>
     </div>
 
-    <!-- Interactive Booking Modal -->
-    <div v-if="showBookingModal" class="modal-backdrop">
-      <div class="modal-container glass-card" @click.stop>
-        <button class="modal-close" @click="closeModal">&times;</button>
-        
-        <!-- Form View -->
-        <div v-if="!bookingConfirmed" class="booking-form-view">
-          <h2 class="modal-title">Formulario de Reserva</h2>
-          <p class="modal-subtitle">Reserva de boleto para el vuelo <strong>{{ selectedFlight.flightNumber }}</strong> de {{ selectedFlight.airline }}.</p>
+    <!-- Modal de Detalle de Vuelo -->
+    <Teleport to="body">
+      <div v-if="showDetailsModal" class="modal-backdrop" @click="closeDetailsModal">
+        <div class="modal-container glass-card detail-modal" @click.stop>
+          <button class="modal-close" @click="closeDetailsModal">&times;</button>
           
-          <div class="modal-flight-summary">
-            <span class="route-badge">{{ selectedFlight.origin }} &rarr; {{ selectedFlight.destination }}</span>
-            <span class="price-badge">${{ selectedFlight.price }} USD</span>
+          <!-- Estado de Carga -->
+          <div v-if="loadingDetails" class="loader-container">
+            <div class="pulse-loader"></div>
+            <p>Cargando detalles de vuelo e historial...</p>
           </div>
 
-          <div class="form-fields">
-            <div class="form-group">
-              <label class="form-label" for="passenger-name">Nombre Completo del Pasajero</label>
-              <input 
-                id="passenger-name" 
-                v-model="passengerName" 
-                type="text" 
-                class="form-input" 
-                placeholder="Ej. Juan Pérez"
-                required
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label" for="passport-number">Número de Pasaporte</label>
-              <input 
-                id="passport-number" 
-                v-model="passportNumber" 
-                type="text" 
-                class="form-input" 
-                placeholder="Ej. RD998822"
-                required
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label" for="class-select">Clase de Asiento</label>
-              <select id="class-select" v-model="selectedClass" class="form-input select-input">
-                <option value="Economy">Económica (Standard)</option>
-                <option value="Business">Ejecutiva (Confort)</option>
-                <option value="FirstClass">Primera Clase (Premium)</option>
-              </select>
-            </div>
+          <!-- Estado de Error -->
+          <div v-else-if="errorDetails" class="error-container">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="error-icon">
+              <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <p>{{ errorDetails }}</p>
+            <button @click="closeDetailsModal" class="btn btn-secondary">Cerrar</button>
           </div>
 
-          <div class="modal-footer">
-            <button @click="closeModal" class="btn btn-secondary">Cancelar</button>
-            <button @click="confirmBooking" class="btn btn-primary">Confirmar Reserva</button>
-          </div>
-        </div>
-
-        <!-- Ticket Confirmed View (Boarding Pass) -->
-        <div v-else class="booking-ticket-view">
-          <div class="success-header">
-            <div class="success-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
+          <!-- Contenido del Detalle -->
+          <div v-else-if="selectedDetails" class="details-content-view animate-fade-in">
+            <div class="details-header">
+              <div class="brand-badge-large">
+                <span>{{ selectedDetails.aerolinea ? selectedDetails.aerolinea.charAt(0) : 'V' }}</span>
+              </div>
+              <div>
+                <h2 class="modal-title">{{ selectedDetails.numeroVuelo }}</h2>
+                <p class="modal-subtitle">{{ selectedDetails.aerolinea }}</p>
+              </div>
+              <div class="status-badge-container">
+                <span :class="['badge', `badge-${selectedDetails.estadoActual?.toLowerCase() || 'programado'}`]">
+                  {{ selectedDetails.estadoActual }}
+                </span>
+              </div>
             </div>
-            <h2>¡Reserva Confirmada Exitosamente!</h2>
-            <p>Tu pase de abordar digital ha sido generado.</p>
-          </div>
 
-          <!-- Digital Boarding Pass Ticket -->
-          <div class="boarding-pass">
-            <div class="pass-header">
-              <span class="pass-brand">SkyFlow Boarding Pass</span>
-              <span class="pass-code">CÓDIGO: {{ bookingCode }}</span>
+            <!-- Ruta y Trayecto -->
+            <div class="modal-route-summary">
+              <div class="endpoint">
+                <span class="endpoint-label">Origen</span>
+                <span class="endpoint-value">{{ selectedDetails.origen }}</span>
+              </div>
+              <div class="route-arrow">&rarr;</div>
+              <div class="endpoint text-right">
+                <span class="endpoint-label">Destino</span>
+                <span class="endpoint-value">{{ selectedDetails.destino }}</span>
+              </div>
             </div>
-            <div class="pass-body">
-              <div class="pass-row">
-                <div class="pass-col">
-                  <span class="pass-label">Pasajero</span>
-                  <span class="pass-val">{{ passengerName }}</span>
-                </div>
-                <div class="pass-col">
-                  <span class="pass-label">Pasaporte</span>
-                  <span class="pass-val">{{ passportNumber }}</span>
-                </div>
-              </div>
 
-              <div class="pass-divider">
-                <div class="cutout-left"></div>
-                <div class="dashed-line"></div>
-                <div class="cutout-right"></div>
+            <!-- Información General -->
+            <div class="details-grid">
+              <div class="detail-group">
+                <span class="info-label">Salida Planificada</span>
+                <span class="info-value">{{ formatDateTime(selectedDetails.horarioPlanificadoSalida) }}</span>
               </div>
-
-              <div class="pass-row flight-details-row">
-                <div class="pass-col">
-                  <span class="pass-label">Vuelo</span>
-                  <span class="pass-val text-primary-color">{{ selectedFlight.flightNumber }}</span>
-                </div>
-                <div class="pass-col">
-                  <span class="pass-label">Aerolínea</span>
-                  <span class="pass-val">{{ selectedFlight.airline }}</span>
-                </div>
-                <div class="pass-col">
-                  <span class="pass-label">Clase</span>
-                  <span class="pass-val font-semibold">{{ selectedClass === 'FirstClass' ? 'Primera Clase' : (selectedClass === 'Business' ? 'Ejecutiva' : 'Económica') }}</span>
-                </div>
+              <div class="detail-group">
+                <span class="info-label">Llegada Planificada</span>
+                <span class="info-value">{{ formatDateTime(selectedDetails.horarioPlanificadoLlegada) }}</span>
               </div>
-
-              <div class="pass-row route-row">
-                <div class="pass-col">
-                  <span class="pass-label">Origen</span>
-                  <h3 class="airport-code-small">{{ selectedFlight.origin }}</h3>
-                  <span class="pass-time">{{ formatTime(selectedFlight.departureTime) }}</span>
-                </div>
-                <div class="plane-flight-symbol">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
-                    <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-1.1.1-1.3.6l-.3.7c-.2.5 0 1.1.4 1.4L9 12l-3 3-2.5-.5c-.4-.1-.8.1-1 .4l-.3.5c-.2.4-.1.9.3 1.1L6 18l1.5 3.5c.2.4.7.5 1.1.3l.5-.3c.3-.2.5-.6.4-1L9 18l3-3 3.1 5.4c.3.5.9.6 1.4.4l.7-.3c.5-.2.7-.8.6-1.3z" />
-                  </svg>
-                </div>
-                <div class="pass-col text-right">
-                  <span class="pass-label">Destino</span>
-                  <h3 class="airport-code-small">{{ selectedFlight.destination }}</h3>
-                  <span class="pass-time">{{ formatTime(selectedFlight.arrivalTime) }}</span>
-                </div>
+              <div class="detail-group">
+                <span class="info-label">Salida Estimada</span>
+                <span class="info-value" :class="{ 'estimated-time': selectedDetails.horarioEstimadoSalida }">
+                  {{ selectedDetails.horarioEstimadoSalida ? formatDateTime(selectedDetails.horarioEstimadoSalida) : 'Sin cambios (A tiempo)' }}
+                </span>
               </div>
+              <div class="detail-group">
+                <span class="info-label">Llegada Estimada</span>
+                <span class="info-value" :class="{ 'estimated-time': selectedDetails.horarioEstimadoLlegada }">
+                  {{ selectedDetails.horarioEstimadoLlegada ? formatDateTime(selectedDetails.horarioEstimadoLlegada) : 'Sin cambios (A tiempo)' }}
+                </span>
+              </div>
+              <div class="detail-group">
+                <span class="info-label">Puerta</span>
+                <span class="info-value highlight-blue">{{ selectedDetails.puerta || 'N/A' }}</span>
+              </div>
+              <div class="detail-group">
+                <span class="info-label">Motivo de Último Cambio</span>
+                <span class="info-value italic-reason">"{{ selectedDetails.motivoUltimoCambio || 'Sin modificaciones' }}"</span>
+              </div>
+            </div>
 
-              <div class="pass-row footer-row">
-                <div class="pass-col">
-                  <span class="pass-label">Puerta</span>
-                  <span class="pass-val">{{ selectedFlight.gate }}</span>
-                </div>
-                <div class="pass-col barcode-col">
-                  <!-- Simulated Barcode -->
-                  <div class="barcode">
-                    <span v-for="n in 18" :key="n" :style="{ width: (n % 3 === 0 ? '3px' : (n % 2 === 0 ? '1px' : '2px')), marginRight: (n % 4 === 0 ? '2px' : '1px') }"></span>
+            <!-- Historial de Estados -->
+            <div v-if="selectedDetails.historialEstados && selectedDetails.historialEstados.length > 0" class="history-section">
+              <h3 class="history-title">Historial de Cambios de Estado</h3>
+              <div class="timeline">
+                <div v-for="(h, idx) in selectedDetails.historialEstados" :key="idx" class="timeline-item">
+                  <div class="timeline-badge-dot"></div>
+                  <div class="timeline-content">
+                    <div class="timeline-header">
+                      <span class="timeline-transition">
+                        {{ h.estadoAnterior }} &rarr; <strong class="text-white">{{ h.estadoNuevo }}</strong>
+                      </span>
+                      <span class="timeline-date">{{ formatDateTime(h.fechaHora) }}</span>
+                    </div>
+                    <div class="timeline-user">
+                      <span>Responsable (ID): <code>{{ h.usuarioResponsable }}</code></span>
+                    </div>
                   </div>
-                  <span class="barcode-text">SKYFLOW-{{ selectedFlight.id }}-{{ bookingCode }}</span>
                 </div>
               </div>
             </div>
-          </div>
-
-          <div class="modal-footer">
-            <button @click="closeModal" class="btn btn-primary">Finalizar</button>
           </div>
         </div>
       </div>
-    </div>
+    </Teleport>
   </div>
 </template>
 
@@ -947,5 +997,216 @@ const formatTime = (isoString) => {
   .filters-card {
     position: static;
   }
+}
+
+/* Pagination styles */
+.pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  margin-top: 1.5rem;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.pagination-info {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.btn-pagination {
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  height: auto;
+}
+
+/* Details Modal Styles */
+.detail-modal {
+  max-width: 680px;
+  overflow-y: auto;
+  max-height: 90vh;
+}
+
+.details-content-view {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.details-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 1rem;
+}
+
+.brand-badge-large {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, var(--color-primary) 0%, #1e40af 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 1.25rem;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.status-badge-container {
+  margin-left: auto;
+}
+
+.modal-route-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--color-border);
+  padding: 1.25rem;
+  border-radius: 10px;
+}
+
+.modal-route-summary .endpoint {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.endpoint-label {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+}
+
+.endpoint-value {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: white;
+}
+
+.route-arrow {
+  font-size: 1.5rem;
+  color: var(--color-primary);
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem;
+}
+
+.detail-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.info-label {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+}
+
+.info-value {
+  font-size: 0.9rem;
+  color: white;
+  font-weight: 500;
+}
+
+.italic-reason {
+  font-style: italic;
+  color: var(--color-text-secondary);
+}
+
+.highlight-blue {
+  color: #60a5fa;
+  font-weight: 700;
+}
+
+/* History Section */
+.history-section {
+  border-top: 1px solid var(--color-border);
+  padding-top: 1.25rem;
+  margin-top: 0.5rem;
+}
+
+.history-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: white;
+  margin-bottom: 1rem;
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  position: relative;
+  padding-left: 1.25rem;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  background: var(--color-border);
+}
+
+.timeline-item {
+  position: relative;
+}
+
+.timeline-badge-dot {
+  position: absolute;
+  left: -20px;
+  top: 6px;
+  width: 10px;
+  height: 10px;
+  background: var(--color-primary);
+  border-radius: 50%;
+  border: 2px solid var(--color-bg-dark);
+}
+
+.timeline-content {
+  background: rgba(255, 255, 255, 0.01);
+  border: 1px solid var(--color-border);
+  padding: 0.85rem 1rem;
+  border-radius: 8px;
+}
+
+.timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.35rem;
+}
+
+.timeline-transition {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
+.timeline-date {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.timeline-user {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.timeline-user code {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+  font-family: monospace;
 }
 </style>

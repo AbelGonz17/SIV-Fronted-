@@ -135,12 +135,37 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   // Función para cerrar sesión
-  const logout = () => {
+  const logout = async () => {
+    const token = localStorage.getItem('skyflow_token')
+    const refreshToken = localStorage.getItem('skyflow_refresh_token')
+
+    // Notificar al backend de manera asíncrona para invalidar el token
+    if (refreshToken) {
+      try {
+        const headers = {
+          'Content-Type': 'application/json'
+        }
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`
+        }
+
+        await fetch(`${apiUrl}/Usuarios/cerrar-sesion`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            refreshToken
+          })
+        })
+      } catch (err) {
+        console.error('Error al notificar cierre de sesión al servidor:', err)
+      }
+    }
+
+    // Limpiar estado y localStorage localmente en el cliente
     user.value = null
     isAuthenticated.value = false
     error.value = null
     
-    // Limpiar localStorage
     localStorage.removeItem('skyflow_user')
     localStorage.removeItem('skyflow_token')
     localStorage.removeItem('skyflow_refresh_token')
