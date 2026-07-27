@@ -26,6 +26,7 @@ function getAirportCode(name) {
 export function useFlights() {
   const flights = ref([])
   const airlines = ref([])
+  const airports = ref([])
   const loading = ref(false)
   const error = ref(null)
   
@@ -252,9 +253,150 @@ export function useFlights() {
     }
   }
 
+  const fetchAirports = async () => {
+    try {
+      const token = localStorage.getItem('skyflow_token')
+      const headers = {
+        'Accept': 'application/json'
+      }
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+
+      const response = await fetch(`${apiUrl}/Aeropuertos`, {
+        headers
+      })
+
+      if (!response.ok) {
+        throw new Error(`Error al obtener aeropuertos (${response.status})`)
+      }
+
+      const data = await response.json()
+      airports.value = data.value || data
+    } catch (err) {
+      console.error('Error fetching airports:', err)
+      error.value = err.message || 'Error al cargar catálogo de aeropuertos.'
+    }
+  }
+
+  const createFlight = async (command) => {
+    const token = localStorage.getItem('skyflow_token')
+    const response = await fetch(`${apiUrl}/Vuelos/registrar`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': token ? `Bearer ${token}` : ''
+      },
+      body: JSON.stringify(command)
+    })
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}))
+      throw new Error(errData.errorMessage || `Error al crear el vuelo (${response.status})`)
+    }
+    return await response.json()
+  }
+
+  const updateFlightBasics = async (id, request) => {
+    const token = localStorage.getItem('skyflow_token')
+    const response = await fetch(`${apiUrl}/Vuelos/${id}/basico`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': token ? `Bearer ${token}` : ''
+      },
+      body: JSON.stringify(request)
+    })
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}))
+      throw new Error(errData.errorMessage || `Error al actualizar datos del vuelo (${response.status})`)
+    }
+    return await response.json()
+  }
+
+  const updateFlightStatus = async (command) => {
+    const token = localStorage.getItem('skyflow_token')
+    const response = await fetch(`${apiUrl}/Vuelos/actualizar-estado`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': token ? `Bearer ${token}` : ''
+      },
+      body: JSON.stringify(command)
+    })
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}))
+      throw new Error(errData.errorMessage || `Error al actualizar estado del vuelo (${response.status})`)
+    }
+    return await response.json()
+  }
+
+  const registerDelay = async (command) => {
+    const token = localStorage.getItem('skyflow_token')
+    const response = await fetch(`${apiUrl}/Vuelos/registrar-retraso`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': token ? `Bearer ${token}` : ''
+      },
+      body: JSON.stringify(command)
+    })
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}))
+      throw new Error(errData.errorMessage || `Error al registrar retraso (${response.status})`)
+    }
+    return await response.json()
+  }
+
+  const registerAdvance = async (command) => {
+    const token = localStorage.getItem('skyflow_token')
+    const response = await fetch(`${apiUrl}/Vuelos/registrar-adelanto`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': token ? `Bearer ${token}` : ''
+      },
+      body: JSON.stringify(command)
+    })
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}))
+      throw new Error(errData.errorMessage || `Error al registrar adelanto (${response.status})`)
+    }
+    return await response.json()
+  }
+
+  const cancelFlight = async (command) => {
+    const token = localStorage.getItem('skyflow_token')
+    const response = await fetch(`${apiUrl}/Vuelos/cancelar`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': token ? `Bearer ${token}` : ''
+      },
+      body: JSON.stringify(command)
+    })
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}))
+      throw new Error(errData.errorMessage || `Error al cancelar el vuelo (${response.status})`)
+    }
+    return await response.json()
+  }
+
   return {
     flights,
     airlines,
+    airports,
     loading,
     error,
     searchFilter,
@@ -264,6 +406,13 @@ export function useFlights() {
     totalCount,
     fetchFlights,
     fetchAirlines,
-    fetchFlightDetails
+    fetchFlightDetails,
+    fetchAirports,
+    createFlight,
+    updateFlightBasics,
+    updateFlightStatus,
+    registerDelay,
+    registerAdvance,
+    cancelFlight
   }
 }

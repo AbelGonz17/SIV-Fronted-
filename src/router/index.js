@@ -15,6 +15,12 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: () => import('../views/LoginView.vue')
+    },
+    {
+      path: '/mantenimiento',
+      name: 'mantenimiento',
+      component: () => import('../views/FlightManagementView.vue'),
+      meta: { requiresAuth: true }
     }
   ]
 })

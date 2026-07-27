@@ -35,10 +35,17 @@ const userInitials = computed(() => {
         <span class="brand-name">SkyFlow</span>
       </RouterLink>
 
-      <!-- Navigation Links (Only visible if authenticated) -->
       <div v-if="authStore.isAuthenticated" class="navbar-links">
         <RouterLink to="/" class="nav-link" active-class="active">
           <span>Panel de Vuelos</span>
+        </RouterLink>
+        <RouterLink 
+          v-if="authStore.user?.role === 'Operador' || authStore.user?.role === 'Administrador'"
+          to="/mantenimiento" 
+          class="nav-link" 
+          active-class="active"
+        >
+          <span>Gestión de Vuelos</span>
         </RouterLink>
       </div>
 
