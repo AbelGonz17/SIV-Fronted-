@@ -33,6 +33,12 @@ const router = createRouter({
       name: 'aeropuertos',
       component: () => import('../views/AirportManagementView.vue'),
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/usuarios',
+      name: 'usuarios',
+      component: () => import('../views/UserManagementView.vue'),
+      meta: { requiresAuth: true }
     }
   ]
 })
