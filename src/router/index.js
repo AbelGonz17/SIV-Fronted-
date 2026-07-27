@@ -21,6 +21,12 @@ const router = createRouter({
       name: 'mantenimiento',
       component: () => import('../views/FlightManagementView.vue'),
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/aerolineas',
+      name: 'aerolineas',
+      component: () => import('../views/AirlineManagementView.vue'),
+      meta: { requiresAuth: true }
     }
   ]
 })

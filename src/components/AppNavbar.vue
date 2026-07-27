@@ -47,6 +47,13 @@ const userInitials = computed(() => {
         >
           <span>Gestión de Vuelos</span>
         </RouterLink>
+        <RouterLink 
+          to="/aerolineas" 
+          class="nav-link" 
+          active-class="active"
+        >
+          <span>Gestión de Aerolíneas</span>
+        </RouterLink>
       </div>
 
       <!-- Quick Action / User Profile -->
