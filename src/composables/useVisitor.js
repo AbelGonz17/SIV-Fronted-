@@ -93,6 +93,15 @@ const markAsRead = async (id) => {
   return await res.json()
 }
 
+const addNotification = (mensaje) => {
+  notifications.value.unshift({
+    id: 'temp-' + Date.now(),
+    mensaje,
+    fueLeida: false,
+    fechaHoraGenearicion: new Date().toISOString()
+  })
+}
+
 export function useVisitor() {
   return {
     myFlights,
@@ -104,6 +113,7 @@ export function useVisitor() {
     followFlight,
     unfollowFlight,
     fetchNotifications,
-    markAsRead
+    markAsRead,
+    addNotification
   }
 }

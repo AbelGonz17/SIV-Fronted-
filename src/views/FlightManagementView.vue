@@ -3,9 +3,11 @@ import { onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useFlights } from '../composables/useFlights'
 import { useAuthStore } from '../stores/auth'
+import { useSignalR } from '../composables/useSignalR'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const { startConnection, onFlightChanged, offFlightChanged } = useSignalR()
 
 // Desestructurar composable de vuelos
 const {
@@ -26,7 +28,8 @@ const {
   registerDelay,
   registerAdvance,
   cancelFlight,
-  fetchFlightDetails
+  fetchFlightDetails,
+  updateFlightFromPayload
 } = useFlights()
 
 // Toast notifications state
@@ -94,7 +97,20 @@ onMounted(async () => {
     fetchAirlines(),
     fetchAirports()
   ])
+
+  // Iniciar SignalR y escuchar actualizaciones globales
+  await startConnection()
+  onFlightChanged(handleFlightUpdated)
 })
+
+import { onUnmounted } from 'vue'
+onUnmounted(() => {
+  offFlightChanged(handleFlightUpdated)
+})
+
+const handleFlightUpdated = (payload) => {
+  updateFlightFromPayload(payload)
+}
 
 // Recargar al cambiar de página
 watch(() => searchFilter.value.pageNumber, () => {
@@ -144,7 +160,7 @@ const openEditModal = (flight) => {
     destino: matchedDest ? matchedDest.id : '',
     // Convertir ISO string a datetime-local string (YYYY-MM-DDTHH:MM)
     horarioPlanificadoSalida: flight.horarioPlanificado ? flight.horarioPlanificado.substring(0, 16) : '',
-    horarioPlanificadoLlegada: flight.horarioPlanificadoLlegada ? flight.horarioPlanificadoLlegada.substring(0, 16) : (flight.horarioPlanificado ? new Date(new Date(flight.horarioPlanificado).getTime() + 2 * 60 * 60 * 1000).toISOString().substring(0, 16) : ''),
+    horarioPlanificadoLlegada: flight.horarioPlanificadoLlegada ? flight.horarioPlanificadoLlegada.substring(0, 16) : (flight.horarioPlanificado ? (() => { const d = new Date(flight.horarioPlanificado); d.setHours(d.getHours() + 2); const tzOffset = d.getTimezoneOffset() * 60000; return new Date(d.getTime() - tzOffset).toISOString().substring(0, 16); })() : ''),
     puerta: flight.puerta || ''
   }
   activeModal.value = 'edit'
@@ -229,8 +245,8 @@ const handleCreateFlight = async () => {
       aerolinea: form.value.aerolinea,
       origen: form.value.origen,
       destino: form.value.destino,
-      horarioPlanificadoSalida: new Date(form.value.horarioPlanificadoSalida).toISOString(),
-      horarioPlanificadoLlegada: new Date(form.value.horarioPlanificadoLlegada).toISOString(),
+      horarioPlanificadoSalida: form.value.horarioPlanificadoSalida,
+      horarioPlanificadoLlegada: form.value.horarioPlanificadoLlegada,
       puerta: form.value.puerta || 'Por asignar'
     }
 
@@ -257,8 +273,8 @@ const handleUpdateBasics = async () => {
       aerolinea: form.value.aerolinea,
       origen: form.value.origen,
       destino: form.value.destino,
-      horarioPlanificadoSalida: new Date(form.value.horarioPlanificadoSalida).toISOString(),
-      horarioPlanificadoLlegada: new Date(form.value.horarioPlanificadoLlegada).toISOString(),
+      horarioPlanificadoSalida: form.value.horarioPlanificadoSalida,
+      horarioPlanificadoLlegada: form.value.horarioPlanificadoLlegada,
       puerta: form.value.puerta || 'Por asignar'
     }
 
@@ -308,7 +324,7 @@ const handleRegisterDelay = async () => {
   try {
     const command = {
       vueloId: selectedFlight.value.id,
-      nuevaHoraSalida: new Date(form.value.nuevaHoraSalida).toISOString(),
+      nuevaHoraSalida: form.value.nuevaHoraSalida,
       motivo: form.value.motivo
     }
 
@@ -333,7 +349,7 @@ const handleRegisterAdvance = async () => {
   try {
     const command = {
       vueloId: selectedFlight.value.id,
-      nuevaHoraSalida: new Date(form.value.nuevaHoraSalida).toISOString(),
+      nuevaHoraSalida: form.value.nuevaHoraSalida,
       motivo: form.value.motivo
     }
 

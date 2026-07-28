@@ -91,6 +91,15 @@
   box-shadow: 0 0 8px var(--status-boarding);
 }
 
+.badge-advanced {
+  background: rgba(14, 165, 233, 0.15);
+  color: #38bdf8;
+}
+.badge-advanced .badge-dot {
+  background: #38bdf8;
+  box-shadow: 0 0 8px #38bdf8;
+}
+
 /* Button UI */
 .btn {
   display: inline-flex;

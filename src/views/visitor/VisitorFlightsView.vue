@@ -52,8 +52,9 @@ const statusClass = (status) => {
   if (!status) return ''
   const s = status.toLowerCase()
   if (s.includes('cancel')) return 'badge-cancelled'
-  if (s.includes('delay') || s.includes('demora')) return 'badge-delayed'
+  if (s.includes('delay') || s.includes('demora') || s.includes('retras')) return 'badge-delayed'
   if (s.includes('board') || s.includes('abord')) return 'badge-boarding'
+  if (s.includes('adelant') || s.includes('advanc')) return 'badge-advanced'
   return 'badge-ontime'
 }
 
@@ -61,8 +62,9 @@ const statusLabel = (status) => {
   if (!status) return 'En Hora'
   const s = status.toLowerCase()
   if (s.includes('cancel')) return 'Cancelado'
-  if (s.includes('delay') || s.includes('demora')) return 'Demorado'
+  if (s.includes('delay') || s.includes('demora') || s.includes('retras')) return 'Demorado'
   if (s.includes('board') || s.includes('abord')) return 'Abordando'
+  if (s.includes('adelant') || s.includes('advanc')) return 'Adelantado'
   return 'En Hora'
 }
 

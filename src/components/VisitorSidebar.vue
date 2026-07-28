@@ -5,16 +5,40 @@ import { useAuthStore } from '../stores/auth'
 import { useVisitor } from '../composables/useVisitor'
 import { useTheme } from '../composables/useTheme'
 import ChangePasswordModal from './ChangePasswordModal.vue'
+import { useSignalR } from '../composables/useSignalR'
+import { onUnmounted } from 'vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
-const { fetchNotifications, notifications } = useVisitor()
+const { fetchNotifications, notifications, addNotification } = useVisitor()
 const { activeTheme, themeKeys, themes, setTheme } = useTheme()
+const { startConnection, stopConnection, onPersonalAlert, offPersonalAlert } = useSignalR()
 
 const unreadCount = computed(() => notifications.value.filter(n => !n.fueLeida).length)
+const toast = ref({ show: false, message: '' })
+
+let toastTimeout = null
+const showToast = (message) => {
+  toast.value = { show: true, message }
+  if (toastTimeout) clearTimeout(toastTimeout)
+  toastTimeout = setTimeout(() => { toast.value.show = false }, 5000)
+}
+
+const handleAlert = (mensaje) => {
+  addNotification(mensaje)
+  showToast(mensaje)
+}
 
 onMounted(async () => {
   await fetchNotifications()
+  await startConnection()
+  onPersonalAlert(handleAlert)
+})
+
+onUnmounted(() => {
+  offPersonalAlert(handleAlert)
+  // No detenemos la conexión aquí porque otros componentes podrían usarla,
+  // pero el composable la mantendrá viva
 })
 
 const handleLogout = async () => {
@@ -31,6 +55,26 @@ const initials = computed(() => {
 </script>
 
 <template>
+  <!-- Toast flotante para alertas en tiempo real -->
+  <Transition name="slide-fade">
+    <div v-if="toast.show" class="sidebar-toast">
+      <div class="toast-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+      </div>
+      <div class="toast-content">
+        <strong>Nueva Alerta de Vuelo</strong>
+        <p>{{ toast.message }}</p>
+      </div>
+      <button class="toast-close" @click="toast.show = false">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+  </Transition>
+
   <aside class="visitor-sidebar">
     <!-- Logo / Brand -->
     <div class="visitor-brand">
@@ -372,5 +416,73 @@ const initials = computed(() => {
   background: rgba(239, 68, 68, 0.15);
   border-color: rgba(239, 68, 68, 0.3);
   color: #fca5a5;
+}
+
+/* Sidebar Toast */
+.sidebar-toast {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 280px; /* Al lado del sidebar */
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(var(--color-primary-rgb, 59,130,246), 0.3);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 0 15px rgba(var(--color-primary-rgb, 59,130,246), 0.15);
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  z-index: 9999;
+  width: 320px;
+  backdrop-filter: blur(10px);
+}
+
+.toast-icon {
+  background: rgba(var(--color-primary-rgb, 59,130,246), 0.15);
+  color: var(--color-primary);
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.toast-content {
+  flex: 1;
+}
+
+.toast-content strong {
+  display: block;
+  font-size: 0.85rem;
+  color: white;
+  margin-bottom: 0.2rem;
+}
+
+.toast-content p {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  line-height: 1.3;
+  margin: 0;
+}
+
+.toast-close {
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  transition: color 0.2s;
+}
+
+.toast-close:hover {
+  color: white;
+}
+
+.slide-fade-enter-active { transition: all 0.3s ease-out; }
+.slide-fade-leave-active { transition: all 0.2s cubic-bezier(1, 0.5, 0.8, 1); }
+.slide-fade-enter-from, .slide-fade-leave-to {
+  transform: translateX(-20px);
+  opacity: 0;
 }
 </style>

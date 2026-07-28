@@ -194,6 +194,59 @@ export function useFlights() {
     }
   }
 
+  // Helper para actualizar un vuelo desde SignalR
+  const updateFlightFromPayload = (payload) => {
+    const idx = flights.value.findIndex(f => f.id === payload.vueloId)
+    if (idx !== -1) {
+      const flight = flights.value[idx]
+      
+      // Update basic fields
+      if (payload.numeroVuelo) flight.numeroVuelo = payload.numeroVuelo
+      if (payload.numeroVuelo) flight.flightNumber = payload.numeroVuelo
+      if (payload.estadoActual) flight.estado = payload.estadoActual
+      if (payload.puerta) flight.gate = payload.puerta
+      if (payload.puerta) flight.puerta = payload.puerta
+      if (payload.horarioPlanificado) flight.horarioPlanificado = payload.horarioPlanificado
+      if (payload.horarioEstimado) flight.horarioEstimado = payload.horarioEstimado
+
+      // Update UI Status
+      let uiStatus = 'On Time'
+      const estadoLower = flight.estado?.toLowerCase() || ''
+      if (estadoLower.includes('cancel') || estadoLower.includes('cancelado')) {
+        uiStatus = 'Cancelled'
+      } else if (estadoLower.includes('demora') || estadoLower.includes('delay') || estadoLower.includes('retras')) {
+        uiStatus = 'Delayed'
+      } else if (estadoLower.includes('abord') || estadoLower.includes('board')) {
+        uiStatus = 'Boarding'
+      } else if (estadoLower.includes('program') || estadoLower.includes('sched')) {
+        uiStatus = 'On Time'
+      } else {
+        uiStatus = flight.estado || 'On Time'
+      }
+      flight.status = uiStatus
+
+      // Update Times
+      const isArrival = flight.destino?.toLowerCase().includes('las américas') || 
+                        flight.destino?.toLowerCase().includes('las americas') ||
+                        searchFilter.value.esLlegada === 'true'
+
+      const mainTimeStr = flight.horarioEstimado || flight.horarioPlanificado
+      const mainTime = new Date(mainTimeStr)
+      
+      if (mainTimeStr) {
+        if (isArrival) {
+          const depDate = new Date(mainTime.getTime() - 2 * 60 * 60 * 1000)
+          flight.departureTime = depDate.toISOString()
+          flight.arrivalTime = mainTimeStr
+        } else {
+          const arrDate = new Date(mainTime.getTime() + 2 * 60 * 60 * 1000)
+          flight.departureTime = mainTimeStr
+          flight.arrivalTime = arrDate.toISOString()
+        }
+      }
+    }
+  }
+
   // Filtrado de vuelos reactivo local (para origen/destino)
   const filteredFlights = computed(() => {
     return flights.value.filter(flight => {
@@ -413,6 +466,7 @@ export function useFlights() {
     updateFlightStatus,
     registerDelay,
     registerAdvance,
-    cancelFlight
+    cancelFlight,
+    updateFlightFromPayload
   }
 }
