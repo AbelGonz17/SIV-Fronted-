@@ -165,22 +165,24 @@ const handleDeleteAirport = async () => {
 
 <template>
   <div class="page-management container">
-    <!-- Floating Toast Notification -->
-    <Transition name="slide-fade">
-      <div v-if="toast.show" :class="['toast-notification', `toast-${toast.type}`]">
-        <div class="toast-icon">
-          <svg v-if="toast.type === 'success'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
-          <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
-            <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/>
-            <line x1="12" y1="8" x2="12" y2="12"/>
-            <line x1="12" y1="16" x2="12.01" y2="16"/>
-          </svg>
+    <!-- Toast -->
+    <Teleport to="body">
+      <Transition name="slide-fade">
+        <div v-if="toast.show" :class="['toast-notification', `toast-${toast.type}`]">
+          <div class="toast-icon">
+            <svg v-if="toast.type === 'success'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+              <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+          </div>
+          <p class="toast-message">{{ toast.message }}</p>
         </div>
-        <p class="toast-message">{{ toast.message }}</p>
-      </div>
-    </Transition>
+      </Transition>
+    </Teleport>
 
     <!-- Header Section -->
     <header class="management-header">

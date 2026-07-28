@@ -1,8 +1,9 @@
 <script setup>
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useTheme } from '../composables/useTheme'
+import ChangePasswordModal from './ChangePasswordModal.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -12,6 +13,8 @@ const handleLogout = async () => {
   await authStore.logout()
   router.push('/login')
 }
+
+const showPasswordModal = ref(false)
 
 // Obtener iniciales del usuario logueado
 const userInitials = computed(() => {
@@ -138,6 +141,15 @@ const userInitials = computed(() => {
         </div>
       </div>
 
+      <!-- Settings / Configuración -->
+      <button @click="showPasswordModal = true" class="sidebar-btn-settings">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+          <circle cx="12" cy="12" r="3" />
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+        </svg>
+        <span>Configuración (Contraseña)</span>
+      </button>
+
       <!-- Logout Action -->
       <button @click="handleLogout" class="sidebar-btn-logout">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
@@ -170,6 +182,8 @@ const userInitials = computed(() => {
       </div>
     </div>
   </header>
+
+  <ChangePasswordModal :show="showPasswordModal" @close="showPasswordModal = false" />
 </template>
 
 <style scoped>
@@ -419,6 +433,31 @@ const userInitials = computed(() => {
   border-color: rgba(239, 68, 68, 0.3);
   color: #fca5a5;
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+}
+
+/* Settings Button */
+.sidebar-btn-settings {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.85rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  font-size: 0.9rem;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  margin-bottom: -0.5rem;
+}
+
+.sidebar-btn-settings:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: white;
 }
 
 /* Simple Top Bar (When logged out) */

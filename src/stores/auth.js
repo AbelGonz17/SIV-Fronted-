@@ -171,12 +171,50 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('skyflow_refresh_token')
   }
 
+  // Función para cambiar contraseña
+  const changePassword = async (currentPassword, newPassword) => {
+    loading.value = true
+    error.value = null
+    try {
+      const token = localStorage.getItem('skyflow_token')
+      const response = await fetch(`${apiUrl}/Usuarios/cambiar-contrasena`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          contrasenaActual: currentPassword,
+          nuevaContrasena: newPassword
+        })
+      })
+
+      if (response.ok) {
+        return true
+      } else {
+        try {
+          const errorData = await response.json()
+          error.value = errorData.errorMessage || errorData.detail || 'Error al cambiar la contraseña.'
+        } catch (jsonErr) {
+          error.value = `Error en el servidor (${response.status}).`
+        }
+        return false
+      }
+    } catch (err) {
+      error.value = 'Error de red al intentar cambiar la contraseña.'
+      return false
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     user,
     isAuthenticated,
     loading,
     error,
     login,
-    logout
+    logout,
+    changePassword
   }
 })

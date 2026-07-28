@@ -375,22 +375,24 @@ const handleCancelFlight = async () => {
 
 <template>
   <div class="page-management container">
-    <!-- Floating Toast Notification -->
-    <Transition name="slide-fade">
-      <div v-if="toast.show" :class="['toast-notification', `toast-${toast.type}`]">
-        <div class="toast-icon">
-          <svg v-if="toast.type === 'success'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
-          <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
-            <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/>
-            <line x1="12" y1="8" x2="12" y2="12"/>
-            <line x1="12" y1="16" x2="12.01" y2="16"/>
-          </svg>
+    <!-- Toast -->
+    <Teleport to="body">
+      <Transition name="slide-fade">
+        <div v-if="toast.show" :class="['toast-notification', `toast-${toast.type}`]">
+          <div class="toast-icon">
+            <svg v-if="toast.type === 'success'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+              <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+          </div>
+          <p class="toast-message">{{ toast.message }}</p>
         </div>
-        <p class="toast-message">{{ toast.message }}</p>
-      </div>
-    </Transition>
+      </Transition>
+    </Teleport>
 
     <!-- Header Section -->
     <header class="management-header">
@@ -1217,47 +1219,6 @@ const handleCancelFlight = async () => {
   resize: vertical;
 }
 
-/* Toast Notifications */
-.toast-notification {
-  position: fixed;
-  top: 1.5rem;
-  right: 1.5rem;
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 1rem 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  max-width: 400px;
-}
-
-.toast-success {
-  background: rgba(16, 185, 129, 0.15);
-  border-color: rgba(16, 185, 129, 0.3);
-}
-
-.toast-success .toast-icon {
-  color: #34d399;
-}
-
-.toast-error {
-  background: rgba(239, 68, 68, 0.15);
-  border-color: rgba(239, 68, 68, 0.3);
-}
-
-.toast-error .toast-icon {
-  color: #f87171;
-}
-
-.toast-message {
-  font-size: 0.9rem;
-  color: white;
-  font-weight: 500;
-  margin: 0;
-}
 
 /* Custom Warning Action */
 .btn-warning-action {

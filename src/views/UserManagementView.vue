@@ -14,7 +14,8 @@ const {
   fetchInternalUsers,
   createInternalUser,
   updateInternalUser,
-  deactivateUser
+  deactivateUser,
+  activateUser
 } = useUsers()
 
 // Búsqueda
@@ -28,7 +29,7 @@ const showToast = (message, type = 'success') => {
 }
 
 // Modals
-const activeModal = ref(null) // 'create' | 'edit' | 'deactivate'
+const activeModal = ref(null) // 'create' | 'edit' | 'deactivate' | 'activate'
 const selectedUser = ref(null)
 const loadingOp = ref(false)
 
@@ -71,6 +72,11 @@ const openEdit = (user) => {
 const openDeactivate = (user) => {
   selectedUser.value = user
   activeModal.value = 'deactivate'
+}
+
+const openActivate = (user) => {
+  selectedUser.value = user
+  activeModal.value = 'activate'
 }
 
 const closeModal = () => {
@@ -137,6 +143,20 @@ const handleDeactivate = async () => {
   }
 }
 
+const handleActivate = async () => {
+  loadingOp.value = true
+  try {
+    await activateUser(selectedUser.value.id)
+    showToast(`Usuario "${selectedUser.value.nombre}" activado.`)
+    closeModal()
+    await fetchInternalUsers()
+  } catch (err) {
+    showToast(err.message || 'Error al activar el usuario.', 'error')
+  } finally {
+    loadingOp.value = false
+  }
+}
+
 // Badge para estado activo/inactivo
 const roleBadge = (rol) => {
   const map = {
@@ -151,20 +171,22 @@ const roleBadge = (rol) => {
 <template>
   <div class="page-management container">
     <!-- Toast -->
-    <Transition name="slide-fade">
-      <div v-if="toast.show" :class="['toast-notification', `toast-${toast.type}`]">
-        <div class="toast-icon">
-          <svg v-if="toast.type === 'success'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
-          <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
-            <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/>
-            <line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-          </svg>
+    <Teleport to="body">
+      <Transition name="slide-fade">
+        <div v-if="toast.show" :class="['toast-notification', `toast-${toast.type}`]">
+          <div class="toast-icon">
+            <svg v-if="toast.type === 'success'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+              <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/>
+              <line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+          </div>
+          <p class="toast-message">{{ toast.message }}</p>
         </div>
-        <p class="toast-message">{{ toast.message }}</p>
-      </div>
-    </Transition>
+      </Transition>
+    </Teleport>
 
     <!-- Header -->
     <header class="management-header">
@@ -239,7 +261,8 @@ const roleBadge = (rol) => {
               <td v-if="authStore.user?.role === 'Administrador'" class="text-right actions-cell">
                 <div class="action-buttons-group">
                   <button @click="openEdit(user)" class="btn-action btn-edit" :disabled="!user.activo">Editar</button>
-                  <button @click="openDeactivate(user)" class="btn-action btn-cancel" :disabled="!user.activo">Desactivar</button>
+                  <button v-if="user.activo" @click="openDeactivate(user)" class="btn-action btn-cancel">Desactivar</button>
+                  <button v-else @click="openActivate(user)" class="btn-action btn-success">Activar</button>
                 </div>
               </td>
             </tr>
@@ -343,6 +366,26 @@ const roleBadge = (rol) => {
             <button @click="closeModal" class="btn btn-secondary" :disabled="loadingOp">Cancelar</button>
             <button @click="handleDeactivate" class="btn btn-danger" :disabled="loadingOp">
               {{ loadingOp ? 'Desactivando...' : 'Sí, Desactivar' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Activate Confirm Modal -->
+      <div v-if="activeModal === 'activate'" class="modal-backdrop" @click="closeModal">
+        <div class="modal-container glass-card" @click.stop>
+          <button class="modal-close" @click="closeModal">&times;</button>
+          <h2 class="modal-title text-success">Activar Usuario</h2>
+          <p class="modal-subtitle">¿Deseas activar la cuenta de <strong>{{ selectedUser?.nombre }}</strong>?</p>
+
+          <div style="margin-top:1rem; padding:0.875rem 1rem; border-radius:8px; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.2); color:#34d399; font-size:0.85rem; line-height:1.5;">
+            El usuario recuperará acceso inmediato al sistema con los roles que tenía asignados.
+          </div>
+
+          <div class="modal-footer" style="margin-top:1.5rem;">
+            <button @click="closeModal" class="btn btn-secondary" :disabled="loadingOp">Cancelar</button>
+            <button @click="handleActivate" class="btn btn-success-fill" :disabled="loadingOp">
+              {{ loadingOp ? 'Activando...' : 'Sí, Activar' }}
             </button>
           </div>
         </div>
@@ -499,6 +542,7 @@ const roleBadge = (rol) => {
 .btn-action:disabled { opacity: 0.3; cursor: not-allowed; }
 .btn-edit:hover:not(:disabled) { border-color: rgba(96,165,250,0.4); background: rgba(59,130,246,0.1); color: #60a5fa; }
 .btn-cancel:hover:not(:disabled) { border-color: rgba(248,113,113,0.4); background: rgba(239,68,68,0.1); color: #f87171; }
+.btn-success:hover:not(:disabled) { border-color: rgba(52,211,153,0.4); background: rgba(16,185,129,0.1); color: #34d399; }
 
 .empty-table-cell { text-align: center; color: var(--color-text-muted); padding: 3rem 1.5rem !important; font-style: italic; }
 
@@ -560,6 +604,18 @@ const roleBadge = (rol) => {
   color: white; border: none;
 }
 .btn-danger:hover { background: linear-gradient(135deg, #f87171 0%, #ef4444 100%); }
+
+.text-success { color: #34d399; }
+.btn-success-fill {
+  background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+  color: white; border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-success-fill:hover { background: linear-gradient(135deg, #34d399 0%, #10b981 100%); }
 
 /* Transitions */
 .slide-fade-enter-active { transition: all 0.3s ease-out; }

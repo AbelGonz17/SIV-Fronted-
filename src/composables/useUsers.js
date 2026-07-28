@@ -102,13 +102,13 @@ export function useUsers() {
     }
   }
 
-  // DELETE /api/Usuarios/{id}/desactivar  — Administrador
+  // PATCH /api/Usuarios/{id}/desactivar  — Administrador
   const deactivateUser = async (id) => {
     loading.value = true
     error.value = null
     try {
       const response = await fetch(`${apiUrl}/Usuarios/${id}/desactivar`, {
-        method: 'DELETE',
+        method: 'PATCH',
         headers: getAuthHeaders()
       })
       if (!response.ok) {
@@ -125,6 +125,29 @@ export function useUsers() {
     }
   }
 
+  // PATCH /api/Usuarios/{id}/activar  — Administrador
+  const activateUser = async (id) => {
+    loading.value = true
+    error.value = null
+    try {
+      const response = await fetch(`${apiUrl}/Usuarios/${id}/activar`, {
+        method: 'PATCH',
+        headers: getAuthHeaders()
+      })
+      if (!response.ok) {
+        const errMsg = await response.text()
+        throw new Error(errMsg || `Error al activar usuario (${response.status})`)
+      }
+      return await response.json()
+    } catch (err) {
+      console.error('Error activating user:', err)
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     internalUsers,
     publicUsers,
@@ -134,6 +157,7 @@ export function useUsers() {
     fetchPublicUsers,
     createInternalUser,
     updateInternalUser,
-    deactivateUser
+    deactivateUser,
+    activateUser
   }
 }

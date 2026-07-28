@@ -4,6 +4,7 @@ import { RouterLink, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useVisitor } from '../composables/useVisitor'
 import { useTheme } from '../composables/useTheme'
+import ChangePasswordModal from './ChangePasswordModal.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -20,6 +21,8 @@ const handleLogout = async () => {
   await authStore.logout()
   router.push('/login')
 }
+
+const showPasswordModal = ref(false)
 
 const initials = computed(() => {
   const name = authStore.user?.name || 'V'
@@ -98,6 +101,15 @@ const initials = computed(() => {
         </div>
       </div>
 
+      <!-- Settings / Configuración -->
+      <button @click="showPasswordModal = true" class="visitor-btn-settings">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+          <circle cx="12" cy="12" r="3" />
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+        </svg>
+        Configuración
+      </button>
+
       <!-- Logout -->
       <button @click="handleLogout" class="visitor-logout-btn">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
@@ -107,6 +119,8 @@ const initials = computed(() => {
       </button>
     </div>
   </aside>
+
+  <ChangePasswordModal :show="showPasswordModal" @close="showPasswordModal = false" />
 </template>
 
 <style scoped>
@@ -311,6 +325,31 @@ const initials = computed(() => {
 
 .theme-dot-btn:hover { transform: scale(1.2); }
 .theme-dot-btn.active { border-color: white; transform: scale(1.25); box-shadow: 0 0 0 3px rgba(255,255,255,0.15); }
+
+/* Settings */
+.visitor-btn-settings {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: -0.5rem;
+}
+
+.visitor-btn-settings:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: white;
+}
 
 .visitor-logout-btn {
   display: flex;
