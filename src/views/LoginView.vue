@@ -15,7 +15,8 @@ const handleLogin = async () => {
   
   const success = await authStore.login(email.value, password.value)
   if (success) {
-    router.push('/')
+    const isVisitor = authStore.user?.role === 'Visitante'
+    router.push(isVisitor ? '/visitante' : '/')
   }
 }
 </script>
@@ -116,7 +117,13 @@ const handleLogin = async () => {
           <span v-if="authStore.loading" class="login-spinner"></span>
           <span v-else>Iniciar Sesión</span>
         </button>
-      </form>   
+      </form>
+
+      <!-- Register link -->
+      <div class="register-link-section">
+        <p>¿No tienes cuenta? <router-link to="/registro" class="register-link">Regístrate aquí</router-link></p>
+      </div>
+
     </div>
   </div>
 </template>
@@ -362,4 +369,19 @@ const handleLogin = async () => {
   border-radius: 4px;
   font-family: monospace;
 }
+/* Register link */
+.register-link-section {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--color-border);
+}
+.register-link {
+  color: var(--color-primary);
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.register-link:hover { color: white; }
 </style>

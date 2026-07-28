@@ -1,14 +1,21 @@
 <script setup>
+import { computed } from 'vue'
 import { RouterView } from 'vue-router'
 import AppNavbar from './components/AppNavbar.vue'
 import { useAuthStore } from './stores/auth'
 
 const authStore = useAuthStore()
+
+// El layout de visitante lo gestiona su propio VisitorLayout.vue (nested route)
+// Solo mostramos la barra interna si el usuario es un usuario interno autenticado
+const isInternalUser = computed(() =>
+  authStore.isAuthenticated && authStore.user?.role !== 'Visitante'
+)
 </script>
 
 <template>
-  <div :class="['app-layout', { 'with-sidebar': authStore.isAuthenticated }]">
-    <AppNavbar />
+  <div :class="['app-layout', { 'with-sidebar': isInternalUser }]">
+    <AppNavbar v-if="isInternalUser" />
     <main class="main-content">
       <RouterView />
     </main>
