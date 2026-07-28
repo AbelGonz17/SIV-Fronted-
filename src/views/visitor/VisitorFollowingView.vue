@@ -113,12 +113,7 @@ onMounted(fetchMyFlights)
 
           <!-- Unfollow button -->
           <div class="card-footer">
-            <div class="flight-id-text">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
-                <path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/>
-              </svg>
-              ID Vuelo: {{ flight.vueloId?.substring(0, 8) }}...
-            </div>
+
             <button
               @click="handleUnfollow(flight)"
               :disabled="unfollowingId === flight.vueloId"
@@ -290,7 +285,7 @@ onMounted(fetchMyFlights)
 /* Card footer */
 .card-footer {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   padding-top: 1rem;
   border-top: 1px solid var(--color-border);
