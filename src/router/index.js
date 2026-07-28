@@ -71,6 +71,18 @@ const router = createRouter({
       name: 'usuarios',
       component: () => import('../views/UserManagementView.vue'),
       meta: { requiresAuth: true, role: 'internal' }
+    },
+    {
+      path: '/auditoria',
+      name: 'auditoria',
+      component: () => import('../views/AuditView.vue'),
+      meta: { requiresAuth: true, role: 'internal' }
+    },
+    {
+      path: '/reportes',
+      name: 'reportes',
+      component: () => import('../views/ReportsView.vue'),
+      meta: { requiresAuth: true, role: 'internal' }
     }
   ]
 })
