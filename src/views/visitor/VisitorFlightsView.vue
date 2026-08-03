@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
 import { useFlights } from '../../composables/useFlights'
 import { useVisitor } from '../../composables/useVisitor'
