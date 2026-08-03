@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUsers } from '../composables/useUsers'
@@ -18,19 +18,21 @@ const {
   activateUser
 } = useUsers()
 
+import type { InternalUserDTO } from '../models/UserManagementDTO'
+
 // Búsqueda
 const searchQuery = ref('')
 
 // Toast
-const toast = ref({ show: false, message: '', type: 'success' })
-const showToast = (message, type = 'success') => {
+const toast = ref<{show: boolean, message: string, type: 'success' | 'error'}>({ show: false, message: '', type: 'success' })
+const showToast = (message: string, type: 'success' | 'error' = 'success') => {
   toast.value = { show: true, message, type }
   setTimeout(() => { toast.value.show = false }, 4000)
 }
 
 // Modals
-const activeModal = ref(null) // 'create' | 'edit' | 'deactivate' | 'activate'
-const selectedUser = ref(null)
+const activeModal = ref<'create' | 'edit' | 'deactivate' | 'activate' | null>(null)
+const selectedUser = ref<InternalUserDTO | null>(null)
 const loadingOp = ref(false)
 
 // Formularios
@@ -63,18 +65,18 @@ const openCreate = () => {
   activeModal.value = 'create'
 }
 
-const openEdit = (user) => {
+const openEdit = (user: InternalUserDTO) => {
   selectedUser.value = user
   editForm.value = { nombre: user.nombre, rol: user.rol }
   activeModal.value = 'edit'
 }
 
-const openDeactivate = (user) => {
+const openDeactivate = (user: InternalUserDTO) => {
   selectedUser.value = user
   activeModal.value = 'deactivate'
 }
 
-const openActivate = (user) => {
+const openActivate = (user: InternalUserDTO) => {
   selectedUser.value = user
   activeModal.value = 'activate'
 }
