@@ -1,10 +1,28 @@
 import apiClient from './apiClient'
-import type { AirlineDTO } from '../models/AirlineDTO'
+import type { 
+  AirlineDTO, 
+  CreateAirlineRequestDTO, 
+  UpdateAirlineRequestDTO 
+} from '../models/AirlineDTO'
 
 export const airlinesService = {
   async getAll(): Promise<AirlineDTO[]> {
     const response = await apiClient.get('/Aerolineas')
-    // Asumiendo que la API envuelve las colecciones en un `value` si es un Result de ASP.NET Core
     return response.data?.value || response.data || []
+  },
+
+  async createAirline(data: CreateAirlineRequestDTO): Promise<any> {
+    const response = await apiClient.post('/Aerolineas', data)
+    return response.data?.value || response.data
+  },
+
+  async updateAirline(id: string, data: UpdateAirlineRequestDTO): Promise<any> {
+    const response = await apiClient.put(`/Aerolineas/${id}`, { ...data, id })
+    return response.data?.value || response.data
+  },
+
+  async deleteAirline(id: string): Promise<any> {
+    const response = await apiClient.delete(`/Aerolineas/${id}`)
+    return response.data?.value || response.data
   }
 }

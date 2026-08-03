@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAirports } from '../composables/useAirports'
@@ -6,6 +6,8 @@ import { useAuthStore } from '../stores/auth'
 
 const router = useRouter()
 const authStore = useAuthStore()
+
+import type { AirportDTO } from '../models/AirportDTO'
 
 // Desestructurar composable de aeropuertos
 const {
@@ -22,13 +24,13 @@ const {
 const searchQuery = ref('')
 
 // Toast notifications state
-const toast = ref({
+const toast = ref<{show: boolean, message: string, type: 'success' | 'error'}>({
   show: false,
   message: '',
-  type: 'success' // 'success' | 'error'
+  type: 'success'
 })
 
-const showToast = (message, type = 'success') => {
+const showToast = (message: string, type: 'success' | 'error' = 'success') => {
   toast.value = { show: true, message, type }
   setTimeout(() => {
     toast.value.show = false
@@ -36,8 +38,8 @@ const showToast = (message, type = 'success') => {
 }
 
 // Modal control
-const activeModal = ref(null) // 'create' | 'edit' | 'delete'
-const selectedAirport = ref(null)
+const activeModal = ref<'create' | 'edit' | 'delete' | null>(null) // 'create' | 'edit' | 'delete'
+const selectedAirport = ref<AirportDTO | null>(null)
 const loadingOperation = ref(false)
 
 // Form fields
@@ -77,17 +79,18 @@ const openCreateModal = () => {
   activeModal.value = 'create'
 }
 
-const openEditModal = (airport) => {
+const openEditModal = (airport: AirportDTO) => {
   selectedAirport.value = airport
   form.value = {
-    codigo: airport.codigo || '',
-    nombre: airport.nombre || '',
+    nombre: airport.nombre,
+    codigoIATA: airport.codigoIATA || '',
+    ciudad: airport.ciudad || '',
     pais: airport.pais || ''
   }
   activeModal.value = 'edit'
 }
 
-const openDeleteModal = (airport) => {
+const openDeleteModal = (airport: AirportDTO) => {
   selectedAirport.value = airport
   activeModal.value = 'delete'
 }
