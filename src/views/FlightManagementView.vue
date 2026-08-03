@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useFlights } from '../composables/useFlights'
@@ -33,13 +33,13 @@ const {
 } = useFlights()
 
 // Toast notifications state
-const toast = ref({
+const toast = ref<{show: boolean, message: string, type: 'success' | 'error'}>({
   show: false,
   message: '',
-  type: 'success' // 'success' | 'error'
+  type: 'success'
 })
 
-const showToast = (message, type = 'success') => {
+const showToast = (message: string, type: 'success' | 'error' = 'success') => {
   toast.value = { show: true, message, type }
   setTimeout(() => {
     toast.value.show = false
@@ -59,15 +59,15 @@ const STATUS_OPTIONS = [
 ]
 
 // Modal control
-const activeModal = ref(null) // 'create' | 'edit' | 'status' | 'delay' | 'advance' | 'cancel'
-const selectedFlight = ref(null)
+const activeModal = ref<'create' | 'edit' | 'status' | 'delay' | 'advance' | 'cancel' | null>(null)
+const selectedFlight = ref<any>(null)
 const loadingOperation = ref(false)
 
 // Variables para el modal de detalle detallado
 const showDetailsModal = ref(false)
-const selectedDetails = ref(null)
+const selectedDetails = ref<any>(null)
 const loadingDetails = ref(false)
-const errorDetails = ref(null)
+const errorDetails = ref<string | null>(null)
 
 // Form fields
 const form = ref({

@@ -1,7 +1,8 @@
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { authService } from '../services/authService'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -15,8 +16,6 @@ const showConfirm = ref(false)
 const localError = ref('')
 const successMsg = ref('')
 const loading = ref(false)
-
-const apiUrl = import.meta.env.VITE_API_URL
 
 const handleRegister = async () => {
   localError.value = ''
@@ -37,21 +36,12 @@ const handleRegister = async () => {
 
   loading.value = true
   try {
-    // 1. Registrar la cuenta (POST /api/Usuarios/registrar)
-    const res = await fetch(`${apiUrl}/Usuarios/registrar`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        nombre: nombre.value.trim(),
-        correo: correo.value.trim(),
-        contrasena: contrasena.value
-      })
+    // 1. Registrar la cuenta usando authService
+    await authService.register({
+      nombre: nombre.value.trim(),
+      correo: correo.value.trim(),
+      contrasena: contrasena.value
     })
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}))
-      throw new Error(err.errorMessage || err.title || `Error al registrarse (${res.status})`)
-    }
 
     // 2. Iniciar sesión automáticamente con las credenciales recién creadas
     const success = await authStore.login(correo.value.trim(), contrasena.value)
@@ -63,8 +53,12 @@ const handleRegister = async () => {
       successMsg.value = '¡Cuenta creada! Ahora puedes iniciar sesión.'
       setTimeout(() => router.push('/login'), 2000)
     }
-  } catch (err) {
-    localError.value = err.message || 'Ocurrió un error al crear la cuenta.'
+  } catch (err: any) {
+    if (err.response && err.response.data) {
+        localError.value = err.response.data.errorMessage || err.response.data.detail || 'Ocurrió un error al crear la cuenta.'
+    } else {
+        localError.value = err.message || 'Ocurrió un error al crear la cuenta.'
+    }
   } finally {
     loading.value = false
   }
