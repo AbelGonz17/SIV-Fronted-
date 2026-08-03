@@ -26,7 +26,7 @@ onMounted(() => {
 watch(
   () => [
     searchFilter.value.esLlegada,
-    searchFilter.value.status,
+    searchFilter.value.estado,
     searchFilter.value.fecha,
     searchFilter.value.aerolineaId
   ],
@@ -50,7 +50,7 @@ const resetFilters = () => {
   searchFilter.value = {
     origin: '',
     destination: '',
-    status: '',
+    estado: '',
     esLlegada: '',
     fecha: '',
     aerolineaId: '',
@@ -170,7 +170,8 @@ const resetFilters = () => {
               <circle cx="12" cy="12" r="10" />
               <line x1="8" y1="12" x2="16" y2="12" />
             </svg>
-            <p>No se encontraron vuelos que coincidan con los criterios de búsqueda.</p>
+            <p v-if="searchFilter.estado">No hay vuelos en estado "{{ searchFilter.estado }}" para los criterios seleccionados. 🏖️</p>
+            <p v-else>No se encontraron vuelos que coincidan con los criterios de búsqueda. ✈️</p>
           </div>
           <FlightCard 
             v-for="flight in filteredFlights" 
@@ -241,7 +242,7 @@ const resetFilters = () => {
             <!-- Status Filter (FIDS API) -->
             <div class="form-group">
               <label class="form-label" for="filter-status">Estado del Vuelo</label>
-              <select id="filter-status" v-model="searchFilter.status" class="form-input select-input">
+              <select id="filter-status" v-model="searchFilter.estado" class="form-input select-input">
                 <option value="">Todos los Estados</option>
                 <option value="Programado">Programado</option>
                 <option value="Abordando">Abordando</option>
