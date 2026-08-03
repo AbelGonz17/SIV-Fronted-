@@ -1,7 +1,15 @@
 import { ref, watch } from 'vue'
 
+export type ThemeKey = 'blue' | 'cyan' | 'green' | 'red' | 'purple' | 'orange'
+
+export interface ThemeConfig {
+  label: string
+  swatch: string
+  vars: Record<string, string>
+}
+
 // Paletas de tema: cada tema define un conjunto completo de variables CSS primarias
-const THEMES = {
+export const THEMES: Record<ThemeKey, ThemeConfig> = {
   blue: {
     label: 'Azul',
     swatch: '#3b82f6',
@@ -89,13 +97,13 @@ const THEMES = {
 }
 
 const STORAGE_KEY = 'skyflow_theme'
-const THEME_KEYS = Object.keys(THEMES)
+const THEME_KEYS = Object.keys(THEMES) as ThemeKey[]
 
 // Estado reactivo compartido (singleton)
-const activeTheme = ref(localStorage.getItem(STORAGE_KEY) || 'blue')
+const activeTheme = ref<ThemeKey>((localStorage.getItem(STORAGE_KEY) as ThemeKey) || 'blue')
 
 // Función de aplicación de tema: inyecta las variables CSS en :root
-function applyTheme(themeKey) {
+function applyTheme(themeKey: ThemeKey) {
   const theme = THEMES[themeKey]
   if (!theme) return
 
@@ -119,9 +127,9 @@ watch(activeTheme, (newTheme) => {
 })
 
 export function useTheme() {
-  const setTheme = (themeKey) => {
-    if (THEME_KEYS.includes(themeKey)) {
-      activeTheme.value = themeKey
+  const setTheme = (themeKey: string) => {
+    if (THEME_KEYS.includes(themeKey as ThemeKey)) {
+      activeTheme.value = themeKey as ThemeKey
     }
   }
 

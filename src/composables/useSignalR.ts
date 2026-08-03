@@ -2,13 +2,23 @@ import { ref } from 'vue'
 import * as signalR from '@microsoft/signalr'
 
 // Singleton instance to avoid multiple connections
-let connection = null
-const isConnected = ref(false)
+let connection: signalR.HubConnection | null = null
+const isConnected = ref<boolean>(false)
+
+type FlightChangePayload = any
+type PersonalAlertPayload = string
+type FlightChangeCallback = (payload: FlightChangePayload) => void
+type PersonalAlertCallback = (payload: PersonalAlertPayload) => void
+
+interface Listeners {
+  RecibirCambioVuelo: FlightChangeCallback[]
+  RecibirAlertaPersonalizada: PersonalAlertCallback[]
+}
 
 // Listeners array for custom events
-const listeners = {
-  'RecibirCambioVuelo': [],
-  'RecibirAlertaPersonalizada': []
+const listeners: Listeners = {
+  RecibirCambioVuelo: [],
+  RecibirAlertaPersonalizada: []
 }
 
 export function useSignalR() {
@@ -22,19 +32,19 @@ export function useSignalR() {
       
       connection = new signalR.HubConnectionBuilder()
         .withUrl(hubUrl, {
-          accessTokenFactory: () => localStorage.getItem('skyflow_token')
+          accessTokenFactory: () => localStorage.getItem('skyflow_token') || ''
         })
         .withAutomaticReconnect([0, 2000, 10000, 30000]) // Retry immediately, 2s, 10s, 30s
         .configureLogging(signalR.LogLevel.Information)
         .build()
 
       // Register global handlers that delegate to registered callbacks
-      connection.on('RecibirCambioVuelo', (payload) => {
+      connection.on('RecibirCambioVuelo', (payload: FlightChangePayload) => {
         console.log('[SignalR] RecibirCambioVuelo:', payload)
         listeners['RecibirCambioVuelo'].forEach(cb => cb(payload))
       })
 
-      connection.on('RecibirAlertaPersonalizada', (mensaje) => {
+      connection.on('RecibirAlertaPersonalizada', (mensaje: PersonalAlertPayload) => {
         console.log('[SignalR] RecibirAlertaPersonalizada:', mensaje)
         listeners['RecibirAlertaPersonalizada'].forEach(cb => cb(mensaje))
       })
@@ -71,23 +81,23 @@ export function useSignalR() {
     }
   }
 
-  const onFlightChanged = (callback) => {
+  const onFlightChanged = (callback: FlightChangeCallback) => {
     if (!listeners['RecibirCambioVuelo'].includes(callback)) {
       listeners['RecibirCambioVuelo'].push(callback)
     }
   }
 
-  const offFlightChanged = (callback) => {
+  const offFlightChanged = (callback: FlightChangeCallback) => {
     listeners['RecibirCambioVuelo'] = listeners['RecibirCambioVuelo'].filter(cb => cb !== callback)
   }
 
-  const onPersonalAlert = (callback) => {
+  const onPersonalAlert = (callback: PersonalAlertCallback) => {
     if (!listeners['RecibirAlertaPersonalizada'].includes(callback)) {
       listeners['RecibirAlertaPersonalizada'].push(callback)
     }
   }
 
-  const offPersonalAlert = (callback) => {
+  const offPersonalAlert = (callback: PersonalAlertCallback) => {
     listeners['RecibirAlertaPersonalizada'] = listeners['RecibirAlertaPersonalizada'].filter(cb => cb !== callback)
   }
 
