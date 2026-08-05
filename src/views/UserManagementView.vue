@@ -20,8 +20,10 @@ const {
 
 import type { InternalUserDTO } from '../models/UserManagementDTO'
 
-// Búsqueda
+// Búsqueda y Filtros
 const searchQuery = ref('')
+const filterRole = ref('')
+const filterStatus = ref('')
 
 // Toast
 const toast = ref<{show: boolean, message: string, type: 'success' | 'error'}>({ show: false, message: '', type: 'success' })
@@ -44,14 +46,33 @@ const ROLES_INTERNOS = ['Administrador', 'Operador', 'Auditor']
 
 // Filtro reactivo
 const filteredUsers = computed(() => {
-  if (!searchQuery.value) return internalUsers.value
-  const q = searchQuery.value.toLowerCase().trim()
-  return internalUsers.value.filter(u =>
-    (u.nombre || '').toLowerCase().includes(q) ||
-    (u.correo || '').toLowerCase().includes(q) ||
-    (u.rol || '').toLowerCase().includes(q)
-  )
+  let result = internalUsers.value || []
+
+  if (filterRole.value) {
+    result = result.filter(u => u.rol === filterRole.value)
+  }
+
+  if (filterStatus.value) {
+    const isActive = filterStatus.value === 'Activo'
+    result = result.filter(u => u.activo === isActive)
+  }
+
+  if (searchQuery.value) {
+    const q = searchQuery.value.toLowerCase().trim()
+    result = result.filter(u =>
+      (u.nombre || '').toLowerCase().includes(q) ||
+      (u.correo || '').toLowerCase().includes(q)
+    )
+  }
+
+  return result
 })
+
+const clearFilters = () => {
+  searchQuery.value = ''
+  filterRole.value = ''
+  filterStatus.value = ''
+}
 
 // Cargar al montar
 onMounted(async () => {
@@ -217,14 +238,35 @@ const roleBadge = (rol) => {
       </div>
     </div>
 
-    <!-- Searchbar -->
-    <div class="toolbar-section glass-card" style="margin-bottom:1.5rem; padding:1rem 1.5rem;">
-      <div class="search-box-wrapper">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon-svg">
+    <!-- Toolbar (Search & Filters) -->
+    <div class="toolbar-section glass-card single-row-toolbar">
+      <div class="search-box-wrapper toolbar-item-search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon-svg" style="color: #9ca3af;">
           <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
         </svg>
-        <input v-model="searchQuery" type="text" placeholder="Buscar por nombre, correo o rol..." class="form-input search-input-field"/>
+        <input v-model="searchQuery" type="text" placeholder="Buscar por nombre o correo..." class="form-input search-input-field" style="width: 100%;" />
       </div>
+      
+      <select v-model="filterRole" class="form-input select-input toolbar-item-select">
+        <option value="">Todos los Roles</option>
+        <option v-for="rol in ROLES_INTERNOS" :key="rol" :value="rol">{{ rol }}</option>
+      </select>
+      
+      <select v-model="filterStatus" class="form-input select-input toolbar-item-select">
+        <option value="">Todos los Estados</option>
+        <option value="Activo">Activos</option>
+        <option value="Inactivo">Inactivos</option>
+      </select>
+      
+      <button @click="clearFilters" class="btn-clear-filters" title="Limpiar Filtros">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        <span>Limpiar</span>
+      </button>
+    </div>
+    
+    <div class="results-indicator">
+      <span v-if="filteredUsers.length > 0">Mostrando {{ filteredUsers.length }} usuario{{ filteredUsers.length === 1 ? '' : 's' }}</span>
+      <span v-else>No se encontraron resultados</span>
     </div>
 
     <!-- Users Table -->
@@ -237,15 +279,16 @@ const roleBadge = (rol) => {
         <p class="error-text">{{ error }}</p>
         <button @click="fetchInternalUsers" class="btn btn-primary">Reintentar</button>
       </div>
-      <div v-else class="table-wrapper">
-        <table class="flights-table">
+      <!-- Table View -->
+      <div v-else class="custom-table-wrapper">
+        <table class="custom-table">
           <thead>
             <tr>
               <th>Nombre</th>
               <th>Correo</th>
               <th>Rol</th>
               <th>Estado</th>
-              <th v-if="authStore.user?.role === 'Administrador'" class="text-right">Acciones</th>
+              <th v-if="authStore.user?.role === 'Administrador'" class="text-center" style="width: 140px;">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -260,11 +303,17 @@ const roleBadge = (rol) => {
                   {{ user.activo ? 'Activo' : 'Inactivo' }}
                 </span>
               </td>
-              <td v-if="authStore.user?.role === 'Administrador'" class="text-right actions-cell">
-                <div class="action-buttons-group">
-                  <button @click="openEdit(user)" class="btn-action btn-edit" :disabled="!user.activo">Editar</button>
-                  <button v-if="user.activo" @click="openDeactivate(user)" class="btn-action btn-cancel">Desactivar</button>
-                  <button v-else @click="openActivate(user)" class="btn-action btn-success">Activar</button>
+              <td v-if="authStore.user?.role === 'Administrador'" class="text-center" style="width: 140px;">
+                <div class="action-buttons-group" style="display: flex; gap: 0.4rem; justify-content: center;">
+                  <button @click="openEdit(user)" class="btn-icon primary" :disabled="!user.activo" title="Editar">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                  </button>
+                  <button v-if="user.activo" @click="openDeactivate(user)" class="btn-icon warning" title="Desactivar">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+                  </button>
+                  <button v-else @click="openActivate(user)" class="btn-icon" style="color: #10b981; border-color: rgba(16, 185, 129, 0.4);" title="Activar">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                  </button>
                 </div>
               </td>
             </tr>
@@ -466,7 +515,71 @@ const roleBadge = (rol) => {
   color: var(--color-text-muted);
 }
 
-.search-input-field { padding-left: 2.75rem !important; width: 100%; }
+.search-input-field { 
+  padding-left: 2.75rem !important; 
+  width: 100%; 
+}
+.search-input-field::placeholder {
+  color: #9ca3af;
+}
+
+/* Toolbar enhancements */
+.single-row-toolbar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: nowrap;
+}
+
+.toolbar-item-search {
+  flex: 3;
+  min-width: 250px;
+}
+
+.toolbar-item-select {
+  flex: 1;
+  min-width: 140px;
+  padding: 0.6rem 2.5rem 0.6rem 1rem;
+}
+
+.btn-clear-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-clear-filters:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+}
+
+.results-indicator {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin-bottom: 1.25rem;
+  padding-left: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .single-row-toolbar {
+    flex-wrap: wrap;
+  }
+  .toolbar-item-search, .toolbar-item-select {
+    flex: 1 1 100%;
+  }
+}
 
 /* Table Card */
 .management-card { padding: 0; overflow: hidden; }
@@ -508,9 +621,9 @@ const roleBadge = (rol) => {
   letter-spacing: 0.04em;
 }
 
-.badge-admin  { background: rgba(139, 92, 246, 0.15); color: #c4b5fd; border: 1px solid rgba(139,92,246,0.25); }
-.badge-operador { background: rgba(59, 130, 246, 0.15); color: #93c5fd; border: 1px solid rgba(59,130,246,0.25); }
-.badge-auditor  { background: rgba(245, 158, 11, 0.15); color: #fcd34d; border: 1px solid rgba(245,158,11,0.25); }
+.badge-admin  { background: rgba(139, 92, 246, 0.2); color: #ddd6fe; border: 1px solid rgba(139,92,246,0.35); }
+.badge-operador { background: rgba(59, 130, 246, 0.2); color: #bfdbfe; border: 1px solid rgba(59,130,246,0.35); }
+.badge-auditor  { background: rgba(245, 158, 11, 0.2); color: #fef3c7; border: 1px solid rgba(245,158,11,0.35); }
 
 /* Status Badges */
 .status-badge {

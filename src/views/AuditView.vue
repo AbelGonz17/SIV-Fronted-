@@ -90,8 +90,8 @@ onMounted(() => {
     </div>
 
     <!-- Tabla -->
-    <div v-else class="table-container glass-card">
-      <table class="data-table">
+    <div class="custom-table-wrapper" style="margin-top: 1.5rem;">
+      <table class="custom-table">
         <thead>
           <tr>
             <th>Fecha y Hora</th>

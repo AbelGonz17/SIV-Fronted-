@@ -31,9 +31,9 @@
 
 .glass-card:hover {
   background: var(--color-bg-card-hover);
-  border-color: rgba(59, 130, 246, 0.25);
-  box-shadow: 0 10px 40px 0 rgba(0, 0, 0, 0.5), 0 0 20px 0 rgba(59, 130, 246, 0.1);
-  transform: translateY(-2px);
+  border-color: rgba(59, 130, 246, 0.35);
+  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.4), 0 0 30px 0 rgba(59, 130, 246, 0.15);
+  transform: translateY(-4px);
 }
 
 /* Badges for status */
@@ -144,6 +144,84 @@
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Icon Buttons for Tables */
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.btn-icon:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.btn-icon.primary:hover:not(:disabled) {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+.btn-icon.danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.btn-icon.warning:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+/* Modal Transitions & Auto-animations */
+@keyframes modalBackdropFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modalContainerScaleIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.modal-backdrop {
+  animation: modalBackdropFadeIn 0.25s ease forwards;
+}
+
+.modal-container {
+  animation: modalContainerScaleIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.3s ease;
+}
+.modal-enter-active .modal-container,
+.modal-leave-active .modal-container {
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+.modal-enter-from .modal-container,
+.modal-leave-to .modal-container {
+  transform: scale(0.9);
 }
 
 /* Forms & Inputs */

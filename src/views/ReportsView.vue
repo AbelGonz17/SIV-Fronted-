@@ -127,8 +127,8 @@ onMounted(() => {
             <button @click="handleExport('cambios')" class="btn btn-secondary btn-sm">Exportar CSV</button>
           </div>
           
-          <div class="table-wrapper">
-            <table class="data-table">
+          <div class="custom-table-wrapper">
+            <table class="custom-table">
               <thead>
                 <tr>
                   <th>Vuelo</th>

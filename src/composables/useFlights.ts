@@ -8,23 +8,54 @@ import type { AirportDTO } from '../models/AirportDTO'
 
 const AIRPORT_CODES: Record<string, string> = {
   'miami international airport': 'MIA',
+  'aeropuerto internacional de miami': 'MIA',
   'las américas international airport': 'SDQ',
   'las americas international airport': 'SDQ',
+  'aeropuerto internacional de las américas': 'SDQ',
+  'aeropuerto internacional de las americas': 'SDQ',
   'john f. kennedy international airport': 'JFK',
+  'aeropuerto internacional john f. kennedy': 'JFK',
   'punta cana international airport': 'PUJ',
+  'aeropuerto internacional de punta cana': 'PUJ',
   'aeropuerto internacional el dorado': 'BOG',
-  'el dorado international airport': 'BOG'
+  'el dorado international airport': 'BOG',
+  'aeropuerto internacional de madrid': 'MAD',
+  'adolfo suárez madrid-barajas airport': 'MAD',
+  'aeropuerto de madrid': 'MAD',
+  'aeropuerto internacional de la romana': 'LRM',
+  'la romana international airport': 'LRM',
+  'aeropuerto internacional del cibao': 'STI',
+  'cibao international airport': 'STI',
+  'newark liberty international airport': 'EWR',
+  'aeropuerto internacional libertad de newark': 'EWR'
 }
 
-function getAirportCode(name: string | undefined): string {
+export function getAirportCode(name: string | undefined): string {
   if (!name) return 'N/A'
-  const key = name.toLowerCase().trim()
-  if (AIRPORT_CODES[key]) return AIRPORT_CODES[key]
   
-  const parts = key.split(/\s+/)
-  if (parts.length >= 3) {
-    return (parts[0][0] + parts[1][0] + parts[2][0]).toUpperCase()
+  // Clean up common words to help extraction if no match is found
+  const cleanName = name.toLowerCase().trim()
+  
+  // Exact or mapped match
+  if (AIRPORT_CODES[cleanName]) return AIRPORT_CODES[cleanName]
+  
+  // Try matching any part of the dictionary keys
+  for (const [key, code] of Object.entries(AIRPORT_CODES)) {
+    if (cleanName.includes(key) || key.includes(cleanName)) return code;
   }
+  
+  // Heuristic extraction
+  let words = cleanName.replace(/aeropuerto|internacional|de|airport|international/g, '').trim().split(/\s+/)
+  words = words.filter(w => w.length > 0)
+  
+  if (words.length >= 3) {
+    return (words[0][0] + words[1][0] + words[2][0]).toUpperCase()
+  } else if (words.length >= 2 && words[0].length >= 2) {
+    return (words[0][0] + words[0][1] + words[1][0]).toUpperCase()
+  } else if (words.length > 0 && words[0].length >= 3) {
+    return words[0].substring(0, 3).toUpperCase()
+  }
+  
   return name.substring(0, 3).toUpperCase()
 }
 
@@ -40,8 +71,10 @@ export function useFlights() {
     pageSize: 20,
     esLlegada: '',
     estado: '',
+    estado: '',
     aerolineaId: '',
-    fecha: ''
+    fecha: '',
+    keyword: ''
   })
 
   const totalPages = ref<number>(1)
@@ -179,11 +212,20 @@ export function useFlights() {
   }
 
   const filteredFlights = computed(() => {
-    return flights.value.filter((flight: any) => {
-      // Necesitamos as any local temporalmente por las properties extras, lo correcto es agregarlas al DTO opcionalmente
-      // pero por simplicidad se usan los campos mapeados.
-      return true; // Asumiremos que el filtro real viene de la API, y esto es sólo por si se necesita
-    })
+    let result = flights.value
+    
+    // Búsqueda rápida local (por origen, destino, número de vuelo, o aerolínea)
+    const keyword = ((searchFilter.value as any).keyword || '').toLowerCase().trim()
+    if (keyword) {
+      result = result.filter((f: any) => {
+        return (f.origen?.toLowerCase().includes(keyword)) ||
+               (f.destino?.toLowerCase().includes(keyword)) ||
+               (f.numeroVuelo?.toLowerCase().includes(keyword)) ||
+               (f.aerolineaNombre?.toLowerCase().includes(keyword))
+      })
+    }
+    
+    return result
   })
 
   const stats = computed(() => {

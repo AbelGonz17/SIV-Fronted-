@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useFlights } from '../composables/useFlights'
 import { useAuthStore } from '../stores/auth'
 import { useSignalR } from '../composables/useSignalR'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const { startConnection, onFlightChanged, offFlightChanged } = useSignalR()
 
@@ -17,6 +18,7 @@ const {
   loading,
   error,
   searchFilter,
+  filteredFlights,
   totalPages,
   totalCount,
   fetchFlights,
@@ -92,6 +94,12 @@ onMounted(async () => {
   
   // Forzar FIDS a traer páginas
   searchFilter.value.pageSize = 10
+  
+  // Si venimos redirigidos con un número de vuelo, llenar el buscador
+  if (route.query.flight) {
+    (searchFilter.value as any).keyword = route.query.flight
+  }
+  
   await Promise.all([
     fetchFlights(),
     fetchAirlines(),
@@ -117,7 +125,6 @@ watch(() => searchFilter.value.pageNumber, () => {
   fetchFlights()
 })
 
-// Formateadores de fecha y hora
 const formatDateTime = (isoString) => {
   if (!isoString) return '-'
   const date = new Date(isoString)
@@ -128,6 +135,13 @@ const formatDateTime = (isoString) => {
     minute: '2-digit',
     hour12: false 
   })
+}
+
+// Helper para código IATA
+const getAirportCode = (name) => {
+  if (!name) return 'N/A'
+  const airport = airports.value.find(a => a.nombre === name)
+  return airport ? airport.codigo : name.substring(0, 3).toUpperCase()
 }
 
 // Abrir Modales
@@ -145,6 +159,7 @@ const openCreateModal = () => {
 }
 
 const openEditModal = (flight) => {
+  showDetailsModal.value = false
   selectedFlight.value = flight
   
   // Mapear los GUIDs de aerolínea y aeropuertos si están disponibles
@@ -159,18 +174,19 @@ const openEditModal = (flight) => {
     origen: matchedOrigin ? matchedOrigin.id : '',
     destino: matchedDest ? matchedDest.id : '',
     // Convertir ISO string a datetime-local string (YYYY-MM-DDTHH:MM)
-    horarioPlanificadoSalida: flight.horarioPlanificado ? flight.horarioPlanificado.substring(0, 16) : '',
-    horarioPlanificadoLlegada: flight.horarioPlanificadoLlegada ? flight.horarioPlanificadoLlegada.substring(0, 16) : (flight.horarioPlanificado ? (() => { const d = new Date(flight.horarioPlanificado); d.setHours(d.getHours() + 2); const tzOffset = d.getTimezoneOffset() * 60000; return new Date(d.getTime() - tzOffset).toISOString().substring(0, 16); })() : ''),
+    horarioPlanificadoSalida: flight.horarioPlanificadoSalida ? flight.horarioPlanificadoSalida.substring(0, 16) : '',
+    horarioPlanificadoLlegada: flight.horarioPlanificadoLlegada ? flight.horarioPlanificadoLlegada.substring(0, 16) : '',
     puerta: flight.puerta || ''
   }
   activeModal.value = 'edit'
 }
 
 const openStatusModal = (flight) => {
+  showDetailsModal.value = false
   selectedFlight.value = flight
   
   // Buscar índice de estado actual en el catálogo local
-  const currentStatusObj = STATUS_OPTIONS.find(s => s.label.toLowerCase() === (flight.estado || '').toLowerCase())
+  const currentStatusObj = STATUS_OPTIONS.find(s => s.label.toLowerCase() === (flight.estadoActual || flight.estado || '').toLowerCase())
   
   form.value = {
     nuevoEstado: currentStatusObj ? currentStatusObj.value : 0,
@@ -180,24 +196,27 @@ const openStatusModal = (flight) => {
 }
 
 const openDelayModal = (flight) => {
+  showDetailsModal.value = false
   selectedFlight.value = flight
   form.value = {
-    nuevaHoraSalida: flight.horarioEstimado ? flight.horarioEstimado.substring(0, 16) : (flight.horarioPlanificado ? flight.horarioPlanificado.substring(0, 16) : ''),
+    nuevaHoraSalida: flight.horarioEstimadoSalida ? flight.horarioEstimadoSalida.substring(0, 16) : (flight.horarioPlanificadoSalida ? flight.horarioPlanificadoSalida.substring(0, 16) : ''),
     motivo: ''
   }
   activeModal.value = 'delay'
 }
 
 const openAdvanceModal = (flight) => {
+  showDetailsModal.value = false
   selectedFlight.value = flight
   form.value = {
-    nuevaHoraSalida: flight.horarioEstimado ? flight.horarioEstimado.substring(0, 16) : (flight.horarioPlanificado ? flight.horarioPlanificado.substring(0, 16) : ''),
+    nuevaHoraSalida: flight.horarioEstimadoSalida ? flight.horarioEstimadoSalida.substring(0, 16) : (flight.horarioPlanificadoSalida ? flight.horarioPlanificadoSalida.substring(0, 16) : ''),
     motivo: ''
   }
   activeModal.value = 'advance'
 }
 
 const openCancelModal = (flight) => {
+  showDetailsModal.value = false
   selectedFlight.value = flight
   form.value = {
     motivo: ''
@@ -206,6 +225,12 @@ const openCancelModal = (flight) => {
 }
 
 const openFlightDetails = async (flightId) => {
+  // Autocompletar el buscador con el vuelo seleccionado
+  const flight = flights.value.find(f => f.id === flightId);
+  if (flight && searchFilter.value) {
+    (searchFilter.value as any).keyword = flight.numeroVuelo;
+  }
+
   loadingDetails.value = true
   errorDetails.value = null
   showDetailsModal.value = true
@@ -458,9 +483,42 @@ const handleCancelFlight = async () => {
         <button @click="fetchFlights" class="btn btn-primary">Reintentar</button>
       </div>
 
+      <div v-else>
+        <!-- Search Toolbar -->
+        <div class="toolbar-section glass-card single-row-toolbar">
+        <div class="search-box-wrapper toolbar-item-search">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon-svg">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input 
+            v-model="(searchFilter as any).keyword" 
+            type="text" 
+            placeholder="Buscador por vuelos" 
+            class="form-input search-input-field"
+          />
+        </div>
+
+        <div class="toolbar-item">
+          <select v-model="searchFilter.estado" class="form-input form-select">
+            <option value="">Todos los Estados</option>
+            <option v-for="s in STATUS_OPTIONS" :key="s.value" :value="s.label">{{ s.label }}</option>
+          </select>
+        </div>
+        
+        <div class="toolbar-actions">
+          <button @click="searchFilter.keyword = ''; searchFilter.estado = '';" class="btn btn-secondary btn-clear">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" style="margin-right: 0.35rem;">
+              <polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+            Limpiar
+          </button>
+        </div>
+      </div>
+        
       <!-- Table View -->
-      <div v-else class="table-wrapper">
-        <table class="flights-table">
+      <div class="custom-table-wrapper">
+          <table class="custom-table">
           <thead>
             <tr>
               <th>Vuelo</th>
@@ -474,14 +532,21 @@ const handleCancelFlight = async () => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="flight in flights" :key="flight.id">
+            <tr v-for="flight in filteredFlights" :key="flight.id">
               <td class="font-bold text-white">{{ flight.numeroVuelo }}</td>
-              <td>{{ flight.aerolinea }}</td>
+              <td>{{ flight.aerolineaNombre }}</td>
               <td>
                 <div class="route-display">
-                  <span class="route-point" :title="flight.origen">{{ flight.origin }}</span>
-                  <span class="route-arrow">&rarr;</span>
-                  <span class="route-point" :title="flight.destino">{{ flight.destination }}</span>
+                  <div style="display: flex; flex-direction: column;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                      <span class="route-point font-bold text-white" :title="flight.origen">{{ getAirportCode(flight.origen) }}</span>
+                      <span class="route-arrow">&rarr;</span>
+                      <span class="route-point font-bold text-white" :title="flight.destino">{{ getAirportCode(flight.destino) }}</span>
+                    </div>
+                    <span style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 2px;">
+                      {{ flight.origen }} &rarr; {{ flight.destino }}
+                    </span>
+                  </div>
                 </div>
               </td>
               <td>{{ formatDateTime(flight.horarioPlanificado) }}</td>
@@ -490,68 +555,64 @@ const handleCancelFlight = async () => {
                   {{ flight.horarioEstimado ? formatDateTime(flight.horarioEstimado) : 'Sin cambios' }}
                 </span>
               </td>
-              <td class="font-bold text-primary-color">{{ flight.puerta || 'N/A' }}</td>
+              <td class="font-bold text-primary-color">{{ flight.puertaEmbarque || 'N/A' }}</td>
               <td>
-                <span :class="['badge', `badge-${(flight.estado || '').toLowerCase()}`]">
+                <span :class="['status-badge', `badge-${(flight.estado || '').toLowerCase().replace(' ', '-')}`]">
                   {{ flight.estado }}
                 </span>
               </td>
-              <td class="text-right actions-cell">
-                <!-- Action Dropdown-like Button Grid -->
-                <div class="action-buttons-group">
-                  <button @click="openFlightDetails(flight.id)" class="btn-action btn-detail" title="Ver detalles e historial">
-                    Detalle
+              <td class="text-center" style="width: 140px;">
+                <div class="action-buttons-group" style="display: flex; gap: 0.4rem; justify-content: center;">
+                  <button 
+                    v-if="authStore.user?.role === 'Operador'" 
+                    @click="openFlightDetails(flight.id)" 
+                    class="btn btn-primary" 
+                    style="padding: 0.4rem 0.8rem; font-size: 0.8rem; border-radius: 6px;"
+                  >
+                    Gestionar
                   </button>
-                  <template v-if="authStore.user?.role === 'Operador'">
-                    <button @click="openEditModal(flight)" class="btn-action btn-edit" title="Editar datos básicos">
-                      Editar
-                    </button>
-                    <button @click="openStatusModal(flight)" class="btn-action btn-status" title="Cambiar estado del vuelo">
-                      Estado
-                    </button>
-                    <button @click="openDelayModal(flight)" class="btn-action btn-delay" title="Registrar retraso">
-                      Retrasar
-                    </button>
-                    <button @click="openAdvanceModal(flight)" class="btn-action btn-advance" title="Registrar adelanto operativo">
-                      Adelantar
-                    </button>
-                    <button @click="openCancelModal(flight)" class="btn-action btn-cancel" title="Cancelar vuelo">
-                      Cancelar
-                    </button>
-                  </template>
+                  <button 
+                    v-else 
+                    @click="openFlightDetails(flight.id)" 
+                    class="btn btn-secondary" 
+                    style="padding: 0.4rem 0.8rem; font-size: 0.8rem; border-radius: 6px;"
+                  >
+                    Detalles
+                  </button>
                 </div>
               </td>
             </tr>
-            <tr v-if="flights.length === 0">
+            <tr v-if="filteredFlights.length === 0">
               <td colspan="8" class="empty-table-cell">
-                No hay vuelos registrados en la terminal para el día de hoy.
+                No hay vuelos registrados o no coinciden con tu búsqueda.
               </td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <!-- Pagination Footer -->
-      <footer class="table-footer">
-        <span class="pagination-info">Mostrando {{ flights.length }} de {{ totalCount }} vuelos</span>
-        <div class="pagination-buttons">
-          <button 
-            @click="searchFilter.pageNumber--" 
-            :disabled="searchFilter.pageNumber <= 1"
-            class="btn btn-secondary btn-pagination"
-          >
-            Anterior
-          </button>
-          <span class="page-number-display">Pág. {{ searchFilter.pageNumber }} de {{ totalPages }}</span>
-          <button 
-            @click="searchFilter.pageNumber++" 
-            :disabled="searchFilter.pageNumber >= totalPages"
-            class="btn btn-secondary btn-pagination"
-          >
-            Siguiente
-          </button>
-        </div>
-      </footer>
+        <!-- Pagination Footer -->
+        <footer class="table-footer">
+          <span class="pagination-info">Mostrando {{ filteredFlights.length }} de {{ totalCount }} vuelos</span>
+          <div class="pagination-buttons">
+            <button 
+              @click="searchFilter.pageNumber--" 
+              :disabled="searchFilter.pageNumber <= 1"
+              class="btn btn-secondary btn-pagination"
+            >
+              Anterior
+            </button>
+            <span class="page-number-display">Pág. {{ searchFilter.pageNumber }} de {{ totalPages }}</span>
+            <button 
+              @click="searchFilter.pageNumber++" 
+              :disabled="searchFilter.pageNumber >= totalPages"
+              class="btn btn-secondary btn-pagination"
+            >
+              Siguiente
+            </button>
+          </div>
+        </footer>
+      </div>
     </div>
 
     <!-- Modals Layer (Rendered conditionally) -->
@@ -827,10 +888,34 @@ const handleCancelFlight = async () => {
                 <p class="modal-subtitle">{{ selectedDetails.aerolinea }}</p>
               </div>
               <div class="status-badge-container">
-                <span :class="['badge', `badge-${selectedDetails.estadoActual?.toLowerCase() || 'programado'}`]">
+                <span :class="['status-badge', `badge-${(selectedDetails.estadoActual || 'programado').toLowerCase().replace(' ', '-')}`]">
                   {{ selectedDetails.estadoActual }}
                 </span>
               </div>
+            </div>
+
+            <!-- Botones de Operación (Solo para Operador) -->
+            <div v-if="authStore.user?.role === 'Operador'" class="operation-actions-bar" style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.5rem;">
+              <button @click="openEditModal(selectedDetails)" class="btn btn-secondary btn-sm" title="Editar datos básicos">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                Editar
+              </button>
+              <button @click="openStatusModal(selectedDetails)" class="btn btn-secondary btn-sm" style="color: #c084fc; border-color: rgba(167, 139, 250, 0.4);" title="Cambiar estado del vuelo">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                Estado
+              </button>
+              <button @click="openDelayModal(selectedDetails)" class="btn btn-secondary btn-sm" style="color: #fbbf24; border-color: rgba(251, 191, 36, 0.4);" title="Registrar retraso">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                Retrasar
+              </button>
+              <button @click="openAdvanceModal(selectedDetails)" class="btn btn-secondary btn-sm" style="color: #34d399; border-color: rgba(52, 211, 153, 0.4);" title="Registrar adelanto operativo">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><polygon points="13 19 22 12 13 5 13 19"></polygon><polygon points="2 19 11 12 2 5 2 19"></polygon></svg>
+                Adelantar
+              </button>
+              <button @click="openCancelModal(selectedDetails)" class="btn btn-danger btn-sm" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; border-radius: 6px;" title="Cancelar vuelo">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                Cancelar
+              </button>
             </div>
 
             <!-- Ruta y Trayecto -->
@@ -966,6 +1051,69 @@ const handleCancelFlight = async () => {
 .management-card {
   padding: 0;
   overflow: hidden;
+}
+
+/* Toolbar Toolbar (Single Row) */
+.single-row-toolbar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid var(--color-border);
+  flex-wrap: nowrap;
+}
+
+.toolbar-item {
+  min-width: 180px;
+}
+
+.toolbar-item-search {
+  flex: 1;
+}
+
+.form-select {
+  padding: 0.5rem 1rem;
+  background: var(--color-bg-light);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: white;
+}
+
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+}
+
+.btn-clear {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+}
+
+/* Search Box Wrapper */
+.search-box-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.search-icon-svg {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  color: var(--color-text-muted);
+}
+
+.search-input-field {
+  padding-left: 2.75rem !important;
+  width: 100%;
+}
+.search-input-field::placeholder {
+  color: #9ca3af;
 }
 
 .table-wrapper {
@@ -1479,5 +1627,34 @@ const handleCancelFlight = async () => {
   .form-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Status Badges */
+.status-badge {
+  padding: 0.3rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.badge-programado { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+.badge-retrasado { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+.badge-embarcando { background: rgba(139, 92, 246, 0.15); color: #c084fc; border: 1px solid rgba(139,92,246,0.3); }
+.badge-cancelado { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+.badge-en-vuelo { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
+.badge-aterrizado { background: rgba(236, 72, 153, 0.15); color: #f472b6; border: 1px solid rgba(236,72,153,0.3); }
+.badge-completado { background: rgba(20, 184, 166, 0.15); color: #2dd4bf; border: 1px solid rgba(20,184,166,0.3); }
+.badge-adelantado { background: rgba(14, 165, 233, 0.15); color: #38bdf8; border: 1px solid rgba(14,165,233,0.3); }
+
+.btn-sm {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
 }
 </style>

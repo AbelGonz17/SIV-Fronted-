@@ -48,15 +48,32 @@ const form = ref({
   nombre: ''
 })
 
+const filterStatus = ref('')
+
 // Filtrado de aerolíneas en cliente
 const filteredAirlines = computed(() => {
-  if (!searchQuery.value) return airlines.value
-  const query = searchQuery.value.toLowerCase().trim()
-  return airlines.value.filter(a => 
-    (a.nombre || '').toLowerCase().includes(query) || 
-    (a.codigo || '').toLowerCase().includes(query)
-  )
+  let result = airlines.value || []
+
+  if (filterStatus.value) {
+    const isActive = filterStatus.value === 'Activo'
+    result = result.filter(a => a.activo === isActive)
+  }
+
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase().trim()
+    result = result.filter(a => 
+      (a.nombre || '').toLowerCase().includes(query) || 
+      (a.codigo || '').toLowerCase().includes(query)
+    )
+  }
+
+  return result
 })
+
+const clearFilters = () => {
+  searchQuery.value = ''
+  filterStatus.value = ''
+}
 
 // Cargar catálogo al iniciar
 onMounted(async () => {
@@ -215,9 +232,9 @@ const handleDeleteAirline = async () => {
     </div>
 
     <!-- Toolbar / Search Bar -->
-    <div class="toolbar-section glass-card" style="margin-bottom: 1.5rem; padding: 1rem 1.5rem;">
-      <div class="search-box-wrapper">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon-svg">
+    <div class="toolbar-section glass-card single-row-toolbar">
+      <div class="search-box-wrapper toolbar-item-search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon-svg">
           <circle cx="11" cy="11" r="8" />
           <line x1="21" y1="21" x2="16.65" y2="16.65" />
         </svg>
@@ -228,6 +245,22 @@ const handleDeleteAirline = async () => {
           class="form-input search-input-field"
         />
       </div>
+
+      <select v-model="filterStatus" class="form-input select-input toolbar-item-select">
+        <option value="">Todos los Estados</option>
+        <option value="Activo">Activas</option>
+        <option value="Inactivo">Inactivas</option>
+      </select>
+      
+      <button @click="clearFilters" class="btn-clear-filters" title="Limpiar Filtros">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        <span>Limpiar</span>
+      </button>
+    </div>
+
+    <div class="results-indicator">
+      <span v-if="filteredAirlines.length > 0">Mostrando {{ filteredAirlines.length }} aerolínea{{ filteredAirlines.length === 1 ? '' : 's' }}</span>
+      <span v-else>No se encontraron resultados</span>
     </div>
 
     <!-- Main Table Card -->
@@ -245,30 +278,32 @@ const handleDeleteAirline = async () => {
       </div>
 
       <!-- Table View -->
-      <div v-else class="table-wrapper">
-        <table class="flights-table">
+      <div v-else class="custom-table-wrapper">
+        <table class="custom-table flights-table">
           <thead>
             <tr>
-              <th>Código IATA</th>
+              <th>Código IATA/ICAO</th>
               <th>Nombre de Aerolínea</th>
-              <th>Identificador Único (GUID)</th>
-              <th v-if="authStore.user?.role === 'Administrador'" class="text-right">Acciones</th>
+              <th>Estado</th>
+              <th v-if="authStore.user?.role === 'Administrador'" class="text-center" style="width: 140px;">Acciones</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="airline in filteredAirlines" :key="airline.id">
-              <td class="font-bold text-primary-color">{{ airline.codigo }}</td>
-              <td class="font-semibold text-white">{{ airline.nombre }}</td>
-              <td style="font-family: monospace; font-size: 0.8rem; color: var(--color-text-muted);">
-                {{ airline.id }}
+              <td class="font-mono text-white">{{ airline.codigo }}</td>
+              <td class="font-semibold">{{ airline.nombre }}</td>
+              <td>
+                <span :class="['status-badge', airline.activo ? 'status-active' : 'status-inactive']">
+                  {{ airline.activo ? 'Activa' : 'Inactiva' }}
+                </span>
               </td>
-              <td v-if="authStore.user?.role === 'Administrador'" class="text-right actions-cell">
-                <div class="action-buttons-group">
-                  <button @click="openEditModal(airline)" class="btn-action btn-edit" title="Editar aerolínea">
-                    Editar
+              <td v-if="authStore.user?.role === 'Administrador'" class="text-center" style="width: 140px;">
+                <div class="action-buttons-group" style="display: flex; gap: 0.4rem; justify-content: center;">
+                  <button @click="openEditModal(airline)" class="btn-icon primary" title="Editar aerolínea">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                   </button>
-                  <button @click="openDeleteModal(airline)" class="btn-action btn-cancel" title="Eliminar aerolínea">
-                    Eliminar
+                  <button @click="openDeleteModal(airline)" class="btn-icon danger" title="Eliminar aerolínea">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
                   </button>
                 </div>
               </td>
@@ -299,8 +334,15 @@ const handleDeleteAirline = async () => {
           
           <div class="form-fields">
             <div class="form-group">
-              <label class="form-label" for="a-code">Código IATA</label>
-              <input id="a-code" v-model="form.codigo" type="text" class="form-input" placeholder="Ej. AA, IB, B6" maxlength="5" required />
+              <label class="form-label">Código IATA/ICAO (Máx 3 char)</label>
+              <input 
+                v-model="form.codigo" 
+                type="text" 
+                class="form-input text-uppercase" 
+                placeholder="Ej. DM" 
+                maxlength="3"
+                required 
+              />
             </div>
 
             <div class="form-group">
@@ -327,8 +369,8 @@ const handleDeleteAirline = async () => {
           
           <div class="form-fields">
             <div class="form-group">
-              <label class="form-label" for="e-code">Código IATA</label>
-              <input id="e-code" v-model="form.codigo" type="text" class="form-input" placeholder="Ej. AA, IB, B6" maxlength="5" required />
+              <label class="form-label" for="e-code">Código IATA/ICAO</label>
+              <input id="e-code" v-model="form.codigo" type="text" class="form-input" placeholder="Ej. AA" maxlength="3" required />
             </div>
 
             <div class="form-group">
@@ -397,27 +439,6 @@ const handleDeleteAirline = async () => {
   margin-top: 0.25rem;
 }
 
-/* Search Box Toolbar */
-.search-box-wrapper {
-  position: relative;
-  width: 100%;
-}
-
-.search-icon-svg {
-  position: absolute;
-  left: 1rem;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 18px;
-  height: 18px;
-  color: var(--color-text-muted);
-}
-
-.search-input-field {
-  padding-left: 2.75rem !important;
-  width: 100%;
-}
-
 /* Role Warning */
 .role-warning-banner {
   display: flex;
@@ -453,14 +474,9 @@ const handleDeleteAirline = async () => {
   overflow: hidden;
 }
 
-.table-wrapper {
-  overflow-x: auto;
-}
-
 .flights-table {
   width: 100%;
   border-collapse: collapse;
-  text-align: left;
   font-size: 0.9rem;
 }
 
@@ -476,7 +492,7 @@ const handleDeleteAirline = async () => {
 }
 
 .flights-table td {
-  padding: 1.25rem 1.5rem;
+  padding: 1.1rem 1.5rem;
   border-bottom: 1px solid var(--color-border);
   color: var(--color-text-secondary);
   vertical-align: middle;
@@ -490,9 +506,17 @@ const handleDeleteAirline = async () => {
   background: rgba(255, 255, 255, 0.01);
 }
 
-.actions-cell {
-  padding: 0.75rem 1.5rem !important;
+.status-badge {
+  padding: 0.3rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
+
+.status-active   { background: rgba(16, 185, 129, 0.1); color: #34d399; border: 1px solid rgba(16,185,129,0.2); }
+.status-inactive { background: rgba(239, 68, 68, 0.1); color: #f87171; border: 1px solid rgba(239,68,68,0.2); }
 
 .action-buttons-group {
   display: flex;
@@ -687,4 +711,97 @@ const handleDeleteAirline = async () => {
     width: 100%;
   }
 }
+
+.search-input-field { 
+  padding-left: 2.75rem !important; 
+  width: 100%; 
+}
+.search-input-field::placeholder {
+  color: #9ca3af;
+}
+
+/* Search Box Wrapper */
+.search-box-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.search-icon-svg {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  color: var(--color-text-muted);
+}
+
+.single-row-toolbar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: nowrap;
+}
+
+.toolbar-item-search {
+  flex: 3;
+  min-width: 250px;
+}
+
+.toolbar-item-select {
+  flex: 1;
+  min-width: 140px;
+  padding: 0.6rem 2.5rem 0.6rem 1rem;
+}
+
+.btn-clear-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-clear-filters:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+}
+
+.results-indicator {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin-bottom: 1.25rem;
+  padding-left: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .single-row-toolbar {
+    flex-wrap: wrap;
+  }
+  .toolbar-item-search, .toolbar-item-select {
+    flex: 1 1 100%;
+  }
+}
+
+.status-badge {
+  padding: 0.3rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.status-active   { background: rgba(16, 185, 129, 0.1); color: #34d399; border: 1px solid rgba(16,185,129,0.2); }
+.status-inactive { background: rgba(239, 68, 68, 0.1); color: #f87171; border: 1px solid rgba(239,68,68,0.2); }
 </style>

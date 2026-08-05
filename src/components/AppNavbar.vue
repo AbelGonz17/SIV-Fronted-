@@ -15,6 +15,7 @@ const handleLogout = async () => {
 }
 
 const showPasswordModal = ref(false)
+const showSettingsModal = ref(false)
 
 // Obtener iniciales del usuario logueado
 const userInitials = computed(() => {
@@ -53,7 +54,7 @@ const userInitials = computed(() => {
       </RouterLink>
 
       <RouterLink 
-        v-if="authStore.user?.role === 'Operador' || authStore.user?.role === 'Administrador'"
+        v-if="authStore.user?.role === 'Operador'"
         to="/mantenimiento" 
         class="menu-link" 
         active-class="active"
@@ -172,12 +173,12 @@ const userInitials = computed(() => {
       </div>
 
       <!-- Settings / Configuración -->
-      <button @click="showPasswordModal = true" class="sidebar-btn-settings">
+      <button @click="showSettingsModal = true" class="sidebar-btn-settings">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
           <circle cx="12" cy="12" r="3" />
           <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
         </svg>
-        <span>Configuración (Contraseña)</span>
+        <span>Configuración</span>
       </button>
 
       <!-- Logout Action -->
@@ -212,6 +213,31 @@ const userInitials = computed(() => {
       </div>
     </div>
   </header>
+
+  <!-- Modal de Configuración (Settings) -->
+  <div v-if="showSettingsModal" class="modal-backdrop" @click="showSettingsModal = false">
+    <div class="modal-container settings-modal glass-card" @click.stop>
+      <button class="modal-close" @click="showSettingsModal = false">&times;</button>
+      <h2 class="modal-title">Configuración</h2>
+      
+      <div class="settings-options">
+        <button class="settings-option-btn" @click="showSettingsModal = false; showPasswordModal = true">
+          <div class="option-icon-wrapper">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+          </div>
+          <div class="settings-option-text">
+            <span class="settings-option-title">Cambiar Contraseña</span>
+            <span class="settings-option-desc">Actualiza tu clave de acceso</span>
+          </div>
+          <svg class="chevron-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
+        <!-- Aquí se pueden añadir más opciones en el futuro -->
+      </div>
+    </div>
+  </div>
 
   <ChangePasswordModal :show="showPasswordModal" @close="showPasswordModal = false" />
 </template>
@@ -297,9 +323,10 @@ const userInitials = computed(() => {
 }
 
 .menu-link.active {
-  background: var(--color-primary);
-  color: white;
-  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.35);
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  box-shadow: inset 4px 0 0 0 var(--color-primary), 0 0 15px rgba(59, 130, 246, 0.1);
 }
 
 .menu-icon {
@@ -399,10 +426,16 @@ const userInitials = computed(() => {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid var(--color-border);
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   padding: 0.75rem 1rem;
-  border-radius: 10px;
+  border-radius: 12px;
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+.profile-card:hover {
+  background: rgba(15, 23, 42, 0.7);
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 .avatar {
@@ -463,6 +496,126 @@ const userInitials = computed(() => {
   border-color: rgba(239, 68, 68, 0.3);
   color: #fca5a5;
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+}
+
+/* Settings Modal Styles */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-container {
+  background: var(--color-bg-dark);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 480px;
+  padding: 2rem;
+  position: relative;
+  box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+  animation: modalFadeIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; transform: translateY(15px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1.25rem;
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 1.75rem;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.modal-close:hover {
+  color: white;
+}
+
+.modal-title {
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: white;
+  margin-bottom: 1.5rem;
+}
+
+.settings-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.settings-option-btn {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+  width: 100%;
+  color: white;
+}
+
+.settings-option-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+.option-icon-wrapper {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.75rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary);
+}
+
+.settings-option-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.settings-option-title {
+  font-size: 1rem;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.settings-option-desc {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.chevron-icon {
+  color: var(--color-text-muted);
+  opacity: 0.5;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.settings-option-btn:hover .chevron-icon {
+  opacity: 1;
+  transform: translateX(4px);
 }
 
 /* Settings Button */
