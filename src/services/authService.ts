@@ -3,7 +3,9 @@ import type {
   LoginRequestDTO, 
   RegisterRequestDTO, 
   ChangePasswordRequestDTO, 
-  AuthResponseDTO 
+  AuthResponseDTO,
+  ForgotPasswordRequestDTO,
+  ResetPasswordRequestDTO
 } from '../models/AuthDTO'
 
 export const authService = {
@@ -23,5 +25,13 @@ export const authService = {
 
   async changePassword(payload: ChangePasswordRequestDTO): Promise<void> {
     await apiClient.patch('/Usuarios/cambiar-contrasena', payload)
+  },
+
+  async forgotPassword(payload: ForgotPasswordRequestDTO): Promise<void> {
+    await apiClient.post('/Usuarios/olvide-contrasena', payload)
+  },
+
+  async resetPassword(payload: ResetPasswordRequestDTO): Promise<void> {
+    await apiClient.post('/Usuarios/restablecer-contrasena', payload)
   }
 }

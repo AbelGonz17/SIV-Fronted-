@@ -10,7 +10,7 @@ const apiClient = axios.create({
 // Interceptor de petición: inyecta el token de acceso
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('skyflow_token')
+    const token = localStorage.getItem('skyflow_token') || sessionStorage.getItem('skyflow_token')
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`
     }
@@ -38,7 +38,7 @@ apiClient.interceptors.response.use(
         // Podríamos invocar un método de authService aquí si no hubiera dependencia circular
         // Por ahora, simplemente cerraremos la sesión o intentaremos refrescar si aplica
         
-        const refreshToken = localStorage.getItem('skyflow_refresh_token')
+        const refreshToken = localStorage.getItem('skyflow_refresh_token') || sessionStorage.getItem('skyflow_refresh_token')
         if (refreshToken) {
             // Aquí iría la llamada a refrescar el token
             // axios.post(baseURL + '/Usuarios/refrescar', { token, refreshToken }) ...
@@ -46,6 +46,8 @@ apiClient.interceptors.response.use(
             // No hay refresh token, cerrar sesión
             localStorage.removeItem('skyflow_token')
             localStorage.removeItem('skyflow_refresh_token')
+            sessionStorage.removeItem('skyflow_token')
+            sessionStorage.removeItem('skyflow_refresh_token')
             window.location.href = '/login'
         }
       }

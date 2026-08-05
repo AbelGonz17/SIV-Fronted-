@@ -33,14 +33,17 @@ function parseJwt(token: string | null): Record<string, any> | null {
 }
 
 export const useAuthStore = defineStore('auth', () => {
-  // Inicializar estado leyendo de localStorage para persistir sesión
-  const user = ref<UserDTO | null>(JSON.parse(localStorage.getItem('skyflow_user') || 'null'))
-  const isAuthenticated = ref<boolean>(!!localStorage.getItem('skyflow_token'))
+  // Inicializar estado leyendo de localStorage o sessionStorage para persistir sesión
+  const savedUser = localStorage.getItem('skyflow_user') || sessionStorage.getItem('skyflow_user')
+  const savedToken = localStorage.getItem('skyflow_token') || sessionStorage.getItem('skyflow_token')
+  
+  const user = ref<UserDTO | null>(JSON.parse(savedUser || 'null'))
+  const isAuthenticated = ref<boolean>(!!savedToken)
   const loading = ref<boolean>(false)
   const error = ref<string | null>(null)
 
   // Función para iniciar sesión conectándose a la API a través del servicio
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string, rememberMe: boolean = false): Promise<boolean> => {
     loading.value = true
     error.value = null
     
@@ -61,7 +64,8 @@ export const useAuthStore = defineStore('auth', () => {
       const data = await authService.login({
         correo: email,
         contrasena: password,
-        ipAddress
+        ipAddress,
+        recordarme: rememberMe
       })
 
       // Extraer el token según las variaciones habituales de respuesta
@@ -96,13 +100,15 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = userData
       isAuthenticated.value = true
 
-      // Persistencia en localStorage
-      localStorage.setItem('skyflow_user', JSON.stringify(userData))
-      localStorage.setItem('skyflow_token', token)
+      // Persistencia en storage (según rememberMe)
+      const storage = rememberMe ? localStorage : sessionStorage
+      
+      storage.setItem('skyflow_user', JSON.stringify(userData))
+      storage.setItem('skyflow_token', token)
       
       const refreshToken = data.refreshToken || data.value?.refreshToken || data.data?.refreshToken
       if (refreshToken) {
-        localStorage.setItem('skyflow_refresh_token', refreshToken)
+        storage.setItem('skyflow_refresh_token', refreshToken)
       }
       return true
 
@@ -120,7 +126,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   // Función para cerrar sesión
   const logout = async (): Promise<void> => {
-    const refreshToken = localStorage.getItem('skyflow_refresh_token')
+    const refreshToken = localStorage.getItem('skyflow_refresh_token') || sessionStorage.getItem('skyflow_refresh_token')
 
     // Notificar al backend de manera asíncrona para invalidar el token
     if (refreshToken) {
@@ -131,7 +137,7 @@ export const useAuthStore = defineStore('auth', () => {
       }
     }
 
-    // Limpiar estado y localStorage localmente en el cliente
+    // Limpiar estado y storage localmente en el cliente
     user.value = null
     isAuthenticated.value = false
     error.value = null
@@ -139,6 +145,10 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('skyflow_user')
     localStorage.removeItem('skyflow_token')
     localStorage.removeItem('skyflow_refresh_token')
+    
+    sessionStorage.removeItem('skyflow_user')
+    sessionStorage.removeItem('skyflow_token')
+    sessionStorage.removeItem('skyflow_refresh_token')
   }
 
   // Función para cambiar contraseña

@@ -2,6 +2,7 @@ export interface LoginRequestDTO {
   correo: string;
   contrasena: string;
   ipAddress?: string;
+  recordarme?: boolean;
 }
 
 export interface RegisterRequestDTO {
@@ -12,6 +13,17 @@ export interface RegisterRequestDTO {
 
 export interface ChangePasswordRequestDTO {
   contrasenaActual: string;
+  nuevaContrasena: string;
+}
+
+export interface ForgotPasswordRequestDTO {
+  correoElectronico: string;
+  urlBaseFrontend: string;
+}
+
+export interface ResetPasswordRequestDTO {
+  token: string;
+  correoElectronico: string;
   nuevaContrasena: string;
 }
 

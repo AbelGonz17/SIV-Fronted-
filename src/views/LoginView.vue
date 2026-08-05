@@ -9,11 +9,12 @@ const router = useRouter()
 const email = ref('')
 const password = ref('')
 const showPassword = ref(false)
+const rememberMe = ref(false)
 
 const handleLogin = async () => {
   if (!email.value || !password.value) return
   
-  const success = await authStore.login(email.value, password.value)
+  const success = await authStore.login(email.value, password.value, rememberMe.value)
   if (success) {
     const isVisitor = authStore.user?.role === 'Visitante'
     router.push(isVisitor ? '/visitante' : '/')
@@ -72,7 +73,7 @@ const handleLogin = async () => {
               v-model="email"
               type="email" 
               class="form-input with-icon" 
-              placeholder="nombre@ejemplo.com"
+              placeholder="usuario@skyflow.com"
               required
               :disabled="authStore.loading"
             />
@@ -101,11 +102,39 @@ const handleLogin = async () => {
               class="password-toggle-btn"
               @click="showPassword = !showPassword"
               tabindex="-1"
+              style="display: flex; align-items: center; justify-content: center; background: none; border: none; padding: 0.5rem;"
             >
-              <span v-if="showPassword">Ocultar</span>
-              <span v-else>Mostrar</span>
+              <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+              <svg v-else xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                <line x1="1" y1="1" x2="23" y2="23"></line>
+              </svg>
             </button>
           </div>
+        </div>
+
+        <!-- Form Actions Row (Remember Me & Forgot Password) -->
+        <div class="form-actions-row" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+          <!-- Remember Me Checkbox -->
+          <div class="remember-me-container" style="display: flex; align-items: center;">
+            <input 
+              type="checkbox" 
+              id="remember-me" 
+              v-model="rememberMe"
+              style="margin-right: 0.5rem; accent-color: #3b82f6; width: auto; height: auto; cursor: pointer;"
+            >
+            <label for="remember-me" style="color: #cbd5e1; font-size: 0.85rem; cursor: pointer; display: inline-block; margin: 0;">
+              Mantener sesión iniciada
+            </label>
+          </div>
+          
+          <!-- Forgot Password link -->
+          <router-link to="/olvide-contrasena" style="color: #94a3b8; font-size: 0.8rem; text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='#60a5fa'" onmouseout="this.style.color='#94a3b8'">
+            ¿Olvidaste tu contraseña?
+          </router-link>
         </div>
 
         <!-- Submit Button -->
@@ -113,9 +142,10 @@ const handleLogin = async () => {
           type="submit" 
           class="btn btn-primary btn-submit-login" 
           :disabled="authStore.loading || !email || !password"
+          style="display: flex; gap: 0.5rem; align-items: center; justify-content: center;"
         >
           <span v-if="authStore.loading" class="login-spinner"></span>
-          <span v-else>Iniciar Sesión</span>
+          <span>{{ authStore.loading ? 'Iniciando...' : 'Iniciar Sesión' }}</span>
         </button>
       </form>
 

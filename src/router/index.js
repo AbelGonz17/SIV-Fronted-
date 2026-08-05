@@ -16,6 +16,16 @@ const router = createRouter({
       name: 'registro',
       component: () => import('../views/RegisterView.vue')
     },
+    {
+      path: '/olvide-contrasena',
+      name: 'olvide-contrasena',
+      component: () => import('../views/ForgotPasswordView.vue')
+    },
+    {
+      path: '/restablecer-contrasena',
+      name: 'restablecer-contrasena',
+      component: () => import('../views/ResetPasswordView.vue')
+    },
 
     // ─── Rutas de Visitante (layout propio sin sidebar interno) ──────────────
     {
@@ -97,8 +107,8 @@ router.beforeEach((to) => {
     return { name: 'login' }
   }
 
-  // Si ya está autenticado y va al login o al registro → redirigir según rol
-  if ((to.name === 'login' || to.name === 'registro') && authStore.isAuthenticated) {
+  // Si ya está autenticado y va a rutas de auth → redirigir según rol
+  if (['login', 'registro', 'olvide-contrasena', 'restablecer-contrasena'].includes(to.name) && authStore.isAuthenticated) {
     return isVisitor ? { name: 'visitor-flights' } : { name: 'home' }
   }
 
