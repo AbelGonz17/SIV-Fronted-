@@ -1,6 +1,19 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { useReports } from '../composables/useReports'
+import {
+  Chart as ChartJS,
+  Title,
+  Tooltip,
+  Legend,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  ArcElement
+} from 'chart.js'
+import { Bar, Doughnut } from 'vue-chartjs'
+
+ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, ArcElement)
 
 const { loading, error, fetchOperacionReport, fetchCambiosOperativos, fetchSeguimientoReport, exportReportCsv } = useReports()
 
@@ -44,6 +57,75 @@ watch([fechaInicio, fechaFin], () => {
   loadDashboard()
 })
 
+const chartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      labels: { color: '#9ca3af' }
+    }
+  },
+  scales: {
+    y: {
+      ticks: { color: '#9ca3af', precision: 0 },
+      grid: { color: 'rgba(255, 255, 255, 0.05)' }
+    },
+    x: {
+      ticks: { color: '#9ca3af' },
+      grid: { display: false }
+    }
+  }
+}
+
+const doughnutOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      position: 'bottom',
+      labels: { color: '#9ca3af' }
+    }
+  }
+}
+
+const barChartData = computed(() => {
+  if (!operacionData.value || !operacionData.value.vuelosPorDia) {
+    return { labels: [], datasets: [] }
+  }
+  return {
+    labels: operacionData.value.vuelosPorDia.map((v: any) => v.fecha),
+    datasets: [
+      {
+        label: 'Vuelos Programados',
+        backgroundColor: '#3b82f6',
+        borderRadius: 4,
+        data: operacionData.value.vuelosPorDia.map((v: any) => v.total)
+      }
+    ]
+  }
+})
+
+const pieChartData = computed(() => {
+  if (!operacionData.value) {
+    return { labels: [], datasets: [] }
+  }
+  return {
+    labels: ['Completados', 'Retrasados', 'Cancelados', 'Otros'],
+    datasets: [
+      {
+        backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#6b7280'],
+        borderWidth: 0,
+        data: [
+          operacionData.value.completados,
+          operacionData.value.retrasados,
+          operacionData.value.cancelados,
+          operacionData.value.otros
+        ]
+      }
+    ]
+  }
+})
+
 onMounted(() => {
   loadDashboard()
 })
@@ -84,7 +166,7 @@ onMounted(() => {
         <div class="kpi-card glass-card">
           <div class="kpi-header">
             <h3>Vuelos Totales</h3>
-            <button @click="handleExport('operacion')" class="btn-icon" title="Exportar CSV">
+            <button @click="handleExport('operacion')" class="btn-icon" disabled title="Función no disponible temporalmente">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             </button>
           </div>
@@ -117,6 +199,27 @@ onMounted(() => {
         </div>
       </div>
 
+      <!-- Charts Section -->
+      <div class="charts-grid">
+        <div class="chart-card glass-card">
+          <div class="section-header" style="margin-bottom: 0;">
+            <h2>Vuelos por Día</h2>
+          </div>
+          <div class="chart-container">
+            <Bar :data="barChartData" :options="chartOptions" />
+          </div>
+        </div>
+
+        <div class="chart-card glass-card">
+          <div class="section-header" style="margin-bottom: 0;">
+            <h2>Distribución de Estados</h2>
+          </div>
+          <div class="chart-container">
+            <Doughnut :data="pieChartData" :options="doughnutOptions" />
+          </div>
+        </div>
+      </div>
+
       <!-- Tablas Inferiores -->
       <div class="bottom-grid">
         
@@ -124,7 +227,7 @@ onMounted(() => {
         <div class="dashboard-section glass-card">
           <div class="section-header">
             <h2>Historial de Cambios Operativos</h2>
-            <button @click="handleExport('cambios')" class="btn btn-secondary btn-sm">Exportar CSV</button>
+            <button @click="handleExport('cambios')" class="btn btn-secondary btn-sm" disabled title="Función no disponible temporalmente">Exportar CSV</button>
           </div>
           
           <div class="custom-table-wrapper">
@@ -160,7 +263,7 @@ onMounted(() => {
         <div class="dashboard-section glass-card" v-if="seguimientoData">
           <div class="section-header">
             <h2>Vuelos Más Seguidos</h2>
-            <button @click="handleExport('seguimiento')" class="btn btn-secondary btn-sm">Exportar CSV</button>
+            <button @click="handleExport('seguimiento')" class="btn btn-secondary btn-sm" disabled title="Función no disponible temporalmente">Exportar CSV</button>
           </div>
           
           <div class="tracking-list">
@@ -282,8 +385,30 @@ onMounted(() => {
   gap: 1.5rem;
 }
 
+.charts-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.chart-card {
+  padding: 1.5rem;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-container {
+  position: relative;
+  height: 300px;
+  width: 100%;
+  margin-top: 1rem;
+}
+
 @media (max-width: 1024px) {
-  .bottom-grid {
+  .bottom-grid, .charts-grid {
     grid-template-columns: 1fr;
   }
 }
