@@ -1,15 +1,40 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
-import { useFlights } from '../../composables/useFlights'
+import { useFlights, getAirportCode } from '../../composables/useFlights'
 import { useVisitor } from '../../composables/useVisitor'
+import VisitorFlightModal from '../../components/VisitorFlightModal.vue'
 
-const { flights, loading, error, searchFilter, filteredFlights, fetchFlights } = useFlights()
+const { flights, loading, error, searchFilter, filteredFlights, fetchFlights, fetchFlightDetails } = useFlights()
 const { myFlights, followFlight, unfollowFlight, fetchMyFlights } = useVisitor()
 
 const toast = ref({ show: false, message: '', type: 'success' })
 const showToast = (message, type = 'success') => {
   toast.value = { show: true, message, type }
   setTimeout(() => { toast.value.show = false }, 3500)
+}
+
+// Modal state
+const showModal = ref(false)
+const selectedFlightDetails = ref(null)
+const modalLoading = ref(false)
+const modalError = ref(null)
+
+const openDetails = async (flightId) => {
+  modalLoading.value = true
+  modalError.value = null
+  showModal.value = true
+  try {
+    selectedFlightDetails.value = await fetchFlightDetails(flightId)
+  } catch (err) {
+    modalError.value = err?.message || 'Error al cargar detalles.'
+  } finally {
+    modalLoading.value = false
+  }
+}
+
+const closeDetails = () => {
+  showModal.value = false
+  selectedFlightDetails.value = null
 }
 
 const followingIds = computed(() => new Set(myFlights.value.map(f => f.vueloId)))
@@ -130,6 +155,9 @@ const changeTab = async (tab) => {
           Llegadas
         </button>
       </div>
+      <div class="search-bar-wrap date-filter" style="flex: 0 1 auto;">
+        <input v-model="searchFilter.fecha" type="date" class="form-input" @change="fetchFlights" />
+      </div>
       <div class="search-bar-wrap">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="search-ico">
           <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -154,7 +182,8 @@ const changeTab = async (tab) => {
         <div
           v-for="flight in displayedFlights"
           :key="flight.id"
-          class="flight-card glass-card"
+          class="flight-card glass-card clickable-card"
+          @click="openDetails(flight.id)"
         >
           <!-- Card header -->
           <div class="fc-header">
@@ -167,60 +196,76 @@ const changeTab = async (tab) => {
             </span>
           </div>
 
-          <!-- Route -->
-          <div class="fc-route">
-            <div class="fc-airport">
-              <span class="fc-code">{{ flight.origin }}</span>
-              <span class="fc-time">{{ formatTime(flight.departureTime) }}</span>
-              <span class="fc-name">{{ flight.originName }}</span>
+          <!-- Route (Fully Vertical Timeline) -->
+          <div class="fc-route-timeline">
+            <!-- Origin -->
+            <div class="tl-step">
+              <div class="tl-icon">
+                <div class="tl-dot origin"></div>
+                <div class="tl-line"></div>
+              </div>
+              <div class="tl-content">
+                <div class="tl-header">
+                  <span class="tl-code">{{ getAirportCode(flight.originName) }}</span>
+                  <span class="tl-time">{{ formatTime(flight.departureTime) }}</span>
+                </div>
+                <span class="tl-name" :title="flight.originName">{{ flight.originName }}</span>
+              </div>
             </div>
-            <div class="fc-arrow">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="36" height="14">
-                <line x1="2" y1="12" x2="22" y2="12"/><polyline points="16 6 22 12 16 18"/>
-              </svg>
-            </div>
-            <div class="fc-airport fc-right">
-              <span class="fc-code">{{ flight.destination }}</span>
-              <span class="fc-time">{{ formatTime(flight.arrivalTime) }}</span>
-              <span class="fc-name">{{ flight.destinationName }}</span>
+            
+            <!-- Destination -->
+            <div class="tl-step">
+              <div class="tl-icon">
+                <div class="tl-dot dest"></div>
+              </div>
+              <div class="tl-content">
+                <div class="tl-header">
+                  <span class="tl-code">{{ getAirportCode(flight.destinationName) }}</span>
+                  <span class="tl-time">{{ formatTime(flight.arrivalTime) }}</span>
+                </div>
+                <span class="tl-name" :title="flight.destinationName">{{ flight.destinationName }}</span>
+              </div>
             </div>
           </div>
 
           <!-- Footer -->
           <div class="fc-footer">
             <div class="fc-meta">
-              <span class="fc-meta-item">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-                Vuelo {{ flight.flightNumber }}
+              <span class="fc-meta-item highlight-text">
+                Vuelo: {{ flight.flightNumber }}
               </span>
-              <span v-if="flight.gate !== 'N/A'" class="fc-meta-item">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                Puerta {{ flight.gate }}
+              <span class="fc-meta-item highlight-text">
+                Puerta: {{ flight.gate !== 'N/A' ? flight.gate : '--' }}
               </span>
             </div>
 
             <!-- Follow Button -->
             <button
               v-if="followingIds.has(flight.id)"
-              @click="handleUnfollow(flight)"
+              @click.stop="handleUnfollow(flight)"
               :disabled="actionLoading === flight.id"
               class="follow-btn following"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-              </svg>
-              {{ actionLoading === flight.id ? '...' : 'Siguiendo' }}
+              <span class="btn-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
+              </span>
+              <span class="btn-text">{{ actionLoading === flight.id ? '...' : 'Siguiendo' }}</span>
+              <span class="btn-text-hover">Dejar de seguir</span>
             </button>
             <button
               v-else
-              @click="handleFollow(flight)"
+              @click.stop="handleFollow(flight)"
               :disabled="actionLoading === flight.id"
               class="follow-btn"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-              </svg>
-              {{ actionLoading === flight.id ? '...' : 'Seguir' }}
+              <span class="btn-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
+              </span>
+              <span class="btn-text">{{ actionLoading === flight.id ? '...' : 'Seguir' }}</span>
             </button>
           </div>
         </div>
@@ -234,6 +279,14 @@ const changeTab = async (tab) => {
         <p>No se encontraron vuelos para los filtros aplicados. ¡El cielo está despejado! ☁️✈️</p>
       </div>
     </div>
+    
+    <VisitorFlightModal
+      :show="showModal"
+      :flightDetails="selectedFlightDetails"
+      :loading="modalLoading"
+      :error="modalError"
+      @close="closeDetails"
+    />
   </div>
 </template>
 
@@ -365,49 +418,85 @@ const changeTab = async (tab) => {
 .badge-cancelled{ background: rgba(239,68,68,0.12);  color: #f87171; }
 .badge-boarding { background: rgba(139,92,246,0.12); color: #c4b5fd; }
 
-/* Route */
-.fc-route {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
-.fc-airport {
+/* Route Vertical Timeline Layout */
+.fc-route-timeline {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  min-width: 0;
+  margin: 0.5rem 0;
 }
 
-.fc-airport.fc-right { align-items: flex-end; }
+.tl-step {
+  display: flex;
+  gap: 1rem;
+}
 
-.fc-code {
+.tl-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 12px;
+}
+
+.tl-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--color-primary);
+  background: transparent;
+  z-index: 1;
+  margin-top: 6px;
+}
+.tl-dot.dest {
+  background: var(--color-primary);
+}
+
+.tl-line {
+  flex: 1;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  margin-top: 4px;
+  margin-bottom: 4px;
+}
+
+.tl-content {
+  flex: 1;
+  min-width: 0;
+  padding-bottom: 1.25rem;
+  display: flex;
+  flex-direction: column;
+}
+.tl-step:last-child .tl-content {
+  padding-bottom: 0;
+}
+
+.tl-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.tl-code {
   font-size: 1.6rem;
   font-weight: 800;
   color: white;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
   line-height: 1;
 }
 
-.fc-time {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--color-primary);
-  margin-top: 0.2rem;
+.tl-time {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #9ca3af;
+  line-height: 1;
 }
 
-.fc-name {
-  font-size: 0.7rem;
+.tl-name {
+  font-size: 0.8rem;
   color: var(--color-text-muted);
-  margin-top: 0.1rem;
+  margin-top: 0.25rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 100px;
 }
-
-.fc-arrow { color: var(--color-text-muted); flex-shrink: 0; }
 
 /* Footer */
 .fc-footer {
@@ -416,20 +505,31 @@ const changeTab = async (tab) => {
   align-items: center;
   padding-top: 0.875rem;
   border-top: 1px solid var(--color-border);
+  gap: 1rem;
 }
 
 .fc-meta {
   display: flex;
-  gap: 0.875rem;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: flex-start;
+  flex: 1;
+  min-width: 0;
 }
 
-.fc-meta-item {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.75rem;
+.highlight-text {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #E5E7EB;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.fc-meta-separator {
   color: var(--color-text-muted);
+  font-size: 0.85rem;
 }
 
 /* Follow button */
@@ -447,7 +547,13 @@ const changeTab = async (tab) => {
   color: var(--color-primary);
   transition: all 0.2s;
   white-space: nowrap;
+  position: relative;
+  overflow: hidden;
 }
+
+.btn-icon { display: flex; align-items: center; justify-content: center; }
+.btn-text-hover { display: none; }
+
 .follow-btn:hover:not(:disabled) {
   background: rgba(var(--color-primary-rgb, 59,130,246), 0.2);
   border-color: var(--color-primary);
@@ -465,6 +571,18 @@ const changeTab = async (tab) => {
   border-color: rgba(239,68,68,0.3);
   color: #f87171;
 }
+
+.follow-btn.following:hover:not(:disabled) .btn-text {
+  display: none;
+}
+.follow-btn.following:hover:not(:disabled) .btn-text-hover {
+  display: inline;
+}
+
+.clickable-card {
+  cursor: pointer;
+}
+
 
 /* Empty / Loading */
 .loading-state {
