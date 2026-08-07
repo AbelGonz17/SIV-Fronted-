@@ -977,7 +977,7 @@ const handleCancelFlight = async () => {
                       <span class="timeline-date">{{ formatDateTime(h.fechaHora) }}</span>
                     </div>
                     <div class="timeline-user">
-                      <span>Responsable (ID): <code>{{ h.usuarioResponsable }}</code></span>
+                      <span>Responsable: <strong>{{ h.usuarioResponsable }}</strong></span>
                     </div>
                   </div>
                 </div>

@@ -5,10 +5,13 @@ import { useAuthStore } from '../stores/auth'
 import { useVisitor } from '../composables/useVisitor'
 import { useTheme } from '../composables/useTheme'
 import ChangePasswordModal from './ChangePasswordModal.vue'
+import UserProfileModal from './UserProfileModal.vue'
 import { useSignalR } from '../composables/useSignalR'
+import { useLayoutStore } from '../stores/layout'
 import { onUnmounted } from 'vue'
 
 const authStore = useAuthStore()
+const layoutStore = useLayoutStore()
 const router = useRouter()
 const { fetchNotifications, notifications, addNotification } = useVisitor()
 const { activeTheme, themeKeys, themes, setTheme } = useTheme()
@@ -47,6 +50,8 @@ const handleLogout = async () => {
 }
 
 const showPasswordModal = ref(false)
+const showSettingsModal = ref(false)
+const showProfileModal = ref(false)
 
 const initials = computed(() => {
   const name = authStore.user?.name || 'V'
@@ -75,7 +80,8 @@ const initials = computed(() => {
     </div>
   </Transition>
 
-  <aside class="visitor-sidebar">
+  <aside :class="['visitor-sidebar', { collapsed: layoutStore.isSidebarCollapsed }]"
+         @click="layoutStore.isSidebarCollapsed ? layoutStore.toggleSidebar() : null">
     <!-- Logo / Brand -->
     <div class="visitor-brand">
       <div class="brand-icon">
@@ -83,10 +89,17 @@ const initials = computed(() => {
           <path d="M22 2L11 13" /><path d="M22 2L15 22 11 13 2 9l20-7z" />
         </svg>
       </div>
-      <div>
+      <div class="brand-text-container">
         <span class="brand-name">SkyFlow</span>
         <span class="brand-tag">Portal de Vuelos</span>
       </div>
+      <button class="sidebar-toggle" @click.stop="layoutStore.toggleSidebar">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
     </div>
 
     <!-- Visitor Greeting -->
@@ -129,24 +142,10 @@ const initials = computed(() => {
 
     <!-- Footer -->
     <div class="visitor-footer">
-      <!-- Theme Picker -->
-      <div class="theme-section">
-        <span class="theme-label-small">TEMA DE COLOR</span>
-        <div class="theme-dots-row">
-          <button
-            v-for="key in themeKeys"
-            :key="key"
-            class="theme-dot-btn"
-            :class="{ active: activeTheme === key }"
-            :style="{ backgroundColor: themes[key].swatch }"
-            :title="themes[key].label"
-            @click="setTheme(key)"
-          />
-        </div>
-      </div>
+
 
       <!-- Settings / Configuración -->
-      <button @click="showPasswordModal = true" class="visitor-btn-settings">
+      <button @click="showSettingsModal = true" class="visitor-btn-settings">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
           <circle cx="12" cy="12" r="3" />
           <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
@@ -164,7 +163,62 @@ const initials = computed(() => {
     </div>
   </aside>
 
+  <!-- Modal de Configuración (Settings) -->
+  <div v-if="showSettingsModal" class="modal-backdrop" @click="showSettingsModal = false">
+    <div class="modal-container settings-modal glass-card" @click.stop>
+      <button class="modal-close" @click="showSettingsModal = false">&times;</button>
+      <h2 class="modal-title">Configuración</h2>
+      
+      <div class="settings-options">
+        <button class="settings-option-btn" @click="showSettingsModal = false; showProfileModal = true">
+          <div class="option-icon-wrapper">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+          </div>
+          <div class="settings-option-text">
+            <span class="settings-option-title">Ver Perfil</span>
+            <span class="settings-option-desc">Consulta tus datos personales</span>
+          </div>
+          <svg class="chevron-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
+
+        <button class="settings-option-btn" @click="showSettingsModal = false; showPasswordModal = true">
+          <div class="option-icon-wrapper">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+          </div>
+          <div class="settings-option-text">
+            <span class="settings-option-title">Cambiar Contraseña</span>
+            <span class="settings-option-desc">Actualiza tu clave de acceso</span>
+          </div>
+          <svg class="chevron-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
+        
+        <!-- Opciones de Apariencia -->
+        <div class="settings-appearance">
+          <span class="theme-label-small">TEMA DE COLOR</span>
+          <div class="theme-dots-row">
+            <button
+              v-for="key in themeKeys"
+              :key="key"
+              class="theme-dot-btn"
+              :class="{ active: activeTheme === key }"
+              :style="{ backgroundColor: themes[key].swatch }"
+              :title="themes[key].label"
+              @click="setTheme(key)"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <ChangePasswordModal :show="showPasswordModal" @close="showPasswordModal = false" />
+  <UserProfileModal :show="showProfileModal" @close="showProfileModal = false" />
 </template>
 
 <style scoped>
@@ -181,16 +235,29 @@ const initials = computed(() => {
   z-index: 100;
   padding: 1.5rem 1rem;
   overflow-y: auto;
+  transition: all 0.3s ease;
+}
+
+.visitor-sidebar.collapsed {
+  width: 80px;
+  padding: 1.5rem 0.75rem;
+  cursor: pointer;
 }
 
 /* Brand */
 .visitor-brand {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 0.75rem;
   padding-bottom: 1.5rem;
   border-bottom: 1px solid rgba(255,255,255,0.06);
   margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.visitor-sidebar.collapsed .visitor-brand {
+  justify-content: center;
 }
 
 .brand-icon {
@@ -220,6 +287,34 @@ const initials = computed(() => {
   font-weight: 600;
 }
 
+.brand-text-container {
+  flex: 1;
+  white-space: nowrap;
+}
+.visitor-sidebar.collapsed .brand-text-container {
+  display: none;
+}
+
+.sidebar-toggle {
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+.sidebar-toggle:hover {
+  background: rgba(255,255,255,0.05);
+  color: white;
+}
+.visitor-sidebar.collapsed .sidebar-toggle {
+  display: none;
+}
+
 /* Greeting */
 .visitor-greeting {
   display: flex;
@@ -230,6 +325,16 @@ const initials = computed(() => {
   background: rgba(255,255,255,0.03);
   border: 1px solid rgba(255,255,255,0.05);
   margin-bottom: 1.5rem;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.visitor-sidebar.collapsed .visitor-greeting {
+  padding: 0.5rem;
+  justify-content: center;
+}
+.visitor-sidebar.collapsed .greeting-text {
+  display: none;
 }
 
 .greeting-avatar {
@@ -276,6 +381,12 @@ const initials = computed(() => {
   text-transform: uppercase;
   padding: 0 0.5rem;
   margin-bottom: 0.5rem;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.visitor-sidebar.collapsed .nav-section-label {
+  display: none;
 }
 
 .visitor-link {
@@ -290,6 +401,16 @@ const initials = computed(() => {
   text-decoration: none;
   transition: all 0.2s;
   position: relative;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.visitor-sidebar.collapsed .visitor-link {
+  padding: 0.85rem;
+  justify-content: center;
+}
+.visitor-sidebar.collapsed .visitor-link span {
+  display: none;
 }
 
 .visitor-link:hover {
@@ -338,8 +459,6 @@ const initials = computed(() => {
   gap: 1rem;
 }
 
-.theme-section {}
-
 .theme-label-small {
   display: block;
   font-size: 0.65rem;
@@ -387,6 +506,28 @@ const initials = computed(() => {
   cursor: pointer;
   transition: all 0.2s;
   margin-bottom: -0.5rem;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.visitor-sidebar.collapsed .visitor-btn-settings {
+  padding: 0.85rem;
+}
+.visitor-sidebar.collapsed .visitor-btn-settings span,
+.visitor-sidebar.collapsed .visitor-btn-settings {
+  /* Hide the text content but keep icon if we wrapped text in span */
+}
+/* If text isn't in a span, we can just hide it and use width */
+.visitor-sidebar.collapsed .visitor-btn-settings {
+  color: transparent; 
+  position: relative;
+}
+.visitor-sidebar.collapsed .visitor-btn-settings svg {
+  color: var(--color-text-secondary);
+  position: absolute;
+}
+.visitor-sidebar.collapsed .visitor-btn-settings:hover svg {
+  color: white;
 }
 
 .visitor-btn-settings:hover {
@@ -410,6 +551,21 @@ const initials = computed(() => {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.visitor-sidebar.collapsed .visitor-logout-btn {
+  padding: 0.85rem;
+  color: transparent;
+  position: relative;
+}
+.visitor-sidebar.collapsed .visitor-logout-btn svg {
+  color: #f87171;
+  position: absolute;
+}
+.visitor-sidebar.collapsed .visitor-logout-btn:hover svg {
+  color: #fca5a5;
 }
 
 .visitor-logout-btn:hover {
@@ -484,5 +640,136 @@ const initials = computed(() => {
 .slide-fade-enter-from, .slide-fade-leave-to {
   transform: translateX(-20px);
   opacity: 0;
+}
+
+/* Settings Modal Styles (Duplicated from AppNavbar for consistency) */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-container {
+  background: #0f172a;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 480px;
+  padding: 2rem;
+  position: relative;
+  box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+  animation: modalFadeIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; transform: translateY(15px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1.25rem;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 1.75rem;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.modal-close:hover {
+  color: white;
+}
+
+.modal-title {
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: white;
+  margin-bottom: 1.5rem;
+}
+
+.settings-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.settings-option-btn {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+  width: 100%;
+  color: white;
+}
+
+.settings-option-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+.option-icon-wrapper {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.75rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary);
+}
+
+.settings-option-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.settings-option-title {
+  font-size: 1rem;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.settings-option-desc {
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.chevron-icon {
+  color: #94a3b8;
+  opacity: 0.5;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.settings-option-btn:hover .chevron-icon {
+  opacity: 1;
+  transform: translateX(4px);
+}
+
+.settings-appearance {
+  margin-top: 1rem;
+  padding: 1rem 1.25rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 </style>

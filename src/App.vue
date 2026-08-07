@@ -3,8 +3,10 @@ import { computed } from 'vue'
 import { RouterView } from 'vue-router'
 import AppNavbar from './components/AppNavbar.vue'
 import { useAuthStore } from './stores/auth'
+import { useLayoutStore } from './stores/layout'
 
 const authStore = useAuthStore()
+const layoutStore = useLayoutStore()
 
 // El layout de visitante lo gestiona su propio VisitorLayout.vue (nested route)
 // Solo mostramos la barra interna si el usuario es un usuario interno autenticado
@@ -14,7 +16,7 @@ const isInternalUser = computed(() =>
 </script>
 
 <template>
-  <div :class="['app-layout', { 'with-sidebar': isInternalUser }]">
+  <div :class="['app-layout', { 'with-sidebar': isInternalUser, 'sidebar-collapsed': layoutStore.isSidebarCollapsed }]">
     <AppNavbar v-if="isInternalUser" />
     <main class="main-content">
       <RouterView />
@@ -37,6 +39,11 @@ const isInternalUser = computed(() =>
   margin-left: 280px;
   width: calc(100% - 280px);
   padding: 2rem;
+}
+
+.app-layout.with-sidebar.sidebar-collapsed .main-content {
+  margin-left: 80px;
+  width: calc(100% - 80px);
 }
 
 .main-content {

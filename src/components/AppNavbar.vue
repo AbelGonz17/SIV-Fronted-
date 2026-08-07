@@ -2,10 +2,13 @@
 import { ref, computed } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useLayoutStore } from '../stores/layout'
 import { useTheme } from '../composables/useTheme'
 import ChangePasswordModal from './ChangePasswordModal.vue'
+import UserProfileModal from './UserProfileModal.vue'
 
 const authStore = useAuthStore()
+const layoutStore = useLayoutStore()
 const router = useRouter()
 const { activeTheme, themeKeys, themes, setTheme } = useTheme()
 
@@ -16,6 +19,7 @@ const handleLogout = async () => {
 
 const showPasswordModal = ref(false)
 const showSettingsModal = ref(false)
+const showProfileModal = ref(false)
 
 // Obtener iniciales del usuario logueado
 const userInitials = computed(() => {
@@ -30,7 +34,9 @@ const userInitials = computed(() => {
 
 <template>
   <!-- If authenticated, show vertical sidebar -->
-  <aside v-if="authStore.isAuthenticated" class="sidebar">
+  <aside v-if="authStore.isAuthenticated" 
+         :class="['sidebar', { collapsed: layoutStore.isSidebarCollapsed }]"
+         @click="layoutStore.isSidebarCollapsed ? layoutStore.toggleSidebar() : null">
     <!-- Top Branding -->
     <div class="sidebar-brand">
       <div class="brand-icon">
@@ -39,6 +45,13 @@ const userInitials = computed(() => {
         </svg>
       </div>
       <span class="brand-name">SkyFlow</span>
+      <button class="sidebar-toggle" @click.stop="layoutStore.toggleSidebar">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
     </div>
 
     <!-- Navigation Menu Links -->
@@ -145,21 +158,7 @@ const userInitials = computed(() => {
         <span class="status-text">Terminal En Línea</span>
       </div>
 
-      <!-- Color Theme Picker -->
-      <div class="theme-picker-section">
-        <span class="theme-label">TEMA DE COLOR</span>
-        <div class="theme-dots">
-          <button
-            v-for="key in themeKeys"
-            :key="key"
-            class="theme-dot"
-            :class="{ active: activeTheme === key }"
-            :style="{ backgroundColor: themes[key].swatch }"
-            :title="themes[key].label"
-            @click="setTheme(key)"
-          />
-        </div>
-      </div>
+
 
       <!-- User Profile Group -->
       <div class="profile-card">
@@ -221,6 +220,20 @@ const userInitials = computed(() => {
       <h2 class="modal-title">Configuración</h2>
       
       <div class="settings-options">
+        <button class="settings-option-btn" @click="showSettingsModal = false; showProfileModal = true">
+          <div class="option-icon-wrapper">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+          </div>
+          <div class="settings-option-text">
+            <span class="settings-option-title">Ver Perfil</span>
+            <span class="settings-option-desc">Consulta tus datos personales</span>
+          </div>
+          <svg class="chevron-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
+
         <button class="settings-option-btn" @click="showSettingsModal = false; showPasswordModal = true">
           <div class="option-icon-wrapper">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22">
@@ -234,12 +247,28 @@ const userInitials = computed(() => {
           </div>
           <svg class="chevron-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
         </button>
-        <!-- Aquí se pueden añadir más opciones en el futuro -->
+        
+        <!-- Opciones de Apariencia -->
+        <div class="settings-appearance">
+          <span class="theme-label">TEMA DE COLOR</span>
+          <div class="theme-dots">
+            <button
+              v-for="key in themeKeys"
+              :key="key"
+              class="theme-dot"
+              :class="{ active: activeTheme === key }"
+              :style="{ backgroundColor: themes[key].swatch }"
+              :title="themes[key].label"
+              @click="setTheme(key)"
+            />
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
   <ChangePasswordModal :show="showPasswordModal" @close="showPasswordModal = false" />
+  <UserProfileModal :show="showProfileModal" @close="showProfileModal = false" />
 </template>
 
 <style scoped>
@@ -259,16 +288,29 @@ const userInitials = computed(() => {
   flex-direction: column;
   padding: 1.5rem;
   box-sizing: border-box;
+  transition: all 0.3s ease;
+}
+
+.sidebar.collapsed {
+  width: 80px;
+  padding: 1.5rem 0.75rem;
+  cursor: pointer; /* Indica que toda la barra se puede clickear para expandir */
 }
 
 /* Brand Branding Header */
 .sidebar-brand {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 0.75rem;
   padding-bottom: 1.5rem;
   border-bottom: 1px solid var(--color-border);
   margin-bottom: 2rem;
+  overflow: hidden;
+}
+
+.sidebar.collapsed .sidebar-brand {
+  justify-content: center;
 }
 
 .brand-icon {
@@ -293,6 +335,32 @@ const userInitials = computed(() => {
   font-weight: 700;
   color: white;
   letter-spacing: -0.03em;
+  flex: 1;
+  white-space: nowrap;
+}
+
+.sidebar.collapsed .brand-name {
+  display: none;
+}
+
+.sidebar-toggle {
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+.sidebar-toggle:hover {
+  background: rgba(255,255,255,0.05);
+  color: white;
+}
+.sidebar.collapsed .sidebar-toggle {
+  display: none;
 }
 
 /* Sidebar Menu List */
@@ -315,6 +383,17 @@ const userInitials = computed(() => {
   font-size: 0.925rem;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1px solid transparent;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.sidebar.collapsed .menu-link {
+  padding: 0.85rem;
+  justify-content: center;
+}
+
+.sidebar.collapsed .menu-link span {
+  display: none;
 }
 
 .menu-link:hover {
@@ -357,6 +436,17 @@ const userInitials = computed(() => {
   border-radius: 20px;
   width: fit-content;
   align-self: center;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.sidebar.collapsed .system-status {
+  padding: 0.4rem;
+  border-radius: 50%;
+}
+
+.sidebar.collapsed .status-text {
+  display: none;
 }
 
 .system-status.online {
@@ -371,11 +461,15 @@ const userInitials = computed(() => {
   box-shadow: 0 0 8px #10b981;
 }
 
-/* Theme Picker */
-.theme-picker-section {
+.settings-appearance {
+  margin-top: 1rem;
+  padding: 1rem 1.25rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
 .theme-label {
@@ -431,6 +525,17 @@ const userInitials = computed(() => {
   padding: 0.75rem 1rem;
   border-radius: 12px;
   transition: background 0.3s ease, border-color 0.3s ease;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.sidebar.collapsed .profile-card {
+  padding: 0.5rem;
+  justify-content: center;
+}
+
+.sidebar.collapsed .profile-meta {
+  display: none;
 }
 
 .profile-card:hover {
@@ -489,6 +594,15 @@ const userInitials = computed(() => {
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.25s ease;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.sidebar.collapsed .sidebar-btn-logout {
+  padding: 0.85rem;
+}
+.sidebar.collapsed .sidebar-btn-logout span {
+  display: none;
 }
 
 .sidebar-btn-logout:hover {
@@ -635,6 +749,15 @@ const userInitials = computed(() => {
   cursor: pointer;
   transition: all 0.25s ease;
   margin-bottom: -0.5rem;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.sidebar.collapsed .sidebar-btn-settings {
+  padding: 0.85rem;
+}
+.sidebar.collapsed .sidebar-btn-settings span {
+  display: none;
 }
 
 .sidebar-btn-settings:hover {
@@ -713,9 +836,6 @@ const userInitials = computed(() => {
     justify-content: space-between;
     gap: 1rem;
     padding-top: 1rem;
-  }
-  .theme-picker-section {
-    display: none; /* Hide theme picker on mobile/tablet to save space */
   }
   .sidebar-btn-logout {
     width: auto;

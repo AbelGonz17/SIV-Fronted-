@@ -3,8 +3,10 @@ import { onMounted, onUnmounted, ref } from 'vue'
 import { RouterView } from 'vue-router'
 import VisitorSidebar from '../components/VisitorSidebar.vue'
 import { useSignalR } from '../composables/useSignalR'
+import { useLayoutStore } from '../stores/layout'
 
 const { startConnection, onPersonalAlert, offPersonalAlert } = useSignalR()
+const layoutStore = useLayoutStore()
 
 const toast = ref({
   show: false,
@@ -34,7 +36,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="visitor-layout">
+  <div :class="['visitor-layout', { 'sidebar-collapsed': layoutStore.isSidebarCollapsed }]">
     <VisitorSidebar />
     <main class="visitor-main">
       <RouterView />
@@ -65,6 +67,12 @@ onUnmounted(() => {
   width: calc(100% - 260px);
   padding: 2rem;
   min-height: 100vh;
+  transition: all 0.3s ease;
+}
+
+.visitor-layout.sidebar-collapsed .visitor-main {
+  margin-left: 80px;
+  width: calc(100% - 80px);
 }
 
 @media (max-width: 900px) {
