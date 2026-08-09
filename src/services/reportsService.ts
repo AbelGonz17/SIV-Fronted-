@@ -29,5 +29,18 @@ export const reportsService = {
       params: { top } 
     })
     return response.data?.value || response.data
+  },
+
+  async exportReportCsv(tipo: string, fechaInicio: string, fechaFin: string): Promise<Blob> {
+    const params = new URLSearchParams()
+    if (tipo) params.append('tipo', tipo)
+    if (fechaInicio) params.append('fechaInicio', fechaInicio)
+    if (fechaFin) params.append('fechaFin', fechaFin)
+
+    const response = await apiClient.get('/Reportes/exportar', {
+      params,
+      responseType: 'blob'
+    })
+    return response.data
   }
 }

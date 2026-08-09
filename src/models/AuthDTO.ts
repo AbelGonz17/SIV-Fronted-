@@ -34,10 +34,12 @@ export interface AuthResponseDTO {
   value?: {
     accessToken?: string;
     refreshToken?: string;
+    token?: string;
   };
   data?: {
     accessToken?: string;
     refreshToken?: string;
+    token?: string;
   };
   errorMessage?: string;
 }

@@ -99,9 +99,8 @@ const openCreateModal = () => {
 const openEditModal = (airport: AirportDTO) => {
   selectedAirport.value = airport
   form.value = {
+    codigo: airport.codigo || airport.codigoIATA || '',
     nombre: airport.nombre,
-    codigoIATA: airport.codigoIATA || '',
-    ciudad: airport.ciudad || '',
     pais: airport.pais || ''
   }
   activeModal.value = 'edit'
@@ -128,7 +127,9 @@ const handleCreateAirport = async () => {
   try {
     const command = {
       codigo: form.value.codigo.toUpperCase().trim(),
+      codigoIATA: form.value.codigo.toUpperCase().trim(),
       nombre: form.value.nombre.trim(),
+      ciudad: form.value.pais.trim(),
       pais: form.value.pais.trim()
     }
 
@@ -136,7 +137,7 @@ const handleCreateAirport = async () => {
     showToast(`El aeropuerto "${command.nombre}" fue registrado exitosamente.`)
     closeModal()
     await fetchAirports()
-  } catch (err) {
+  } catch (err: any) {
     showToast(err.message || 'Error al registrar el aeropuerto.', 'error')
   } finally {
     loadingOperation.value = false
@@ -144,6 +145,7 @@ const handleCreateAirport = async () => {
 }
 
 const handleUpdateAirport = async () => {
+  if (!selectedAirport.value) return
   if (!form.value.codigo || !form.value.nombre || !form.value.pais) {
     showToast('Por favor rellene todos los campos obligatorios.', 'error')
     return
@@ -153,7 +155,9 @@ const handleUpdateAirport = async () => {
   try {
     const command = {
       codigo: form.value.codigo.toUpperCase().trim(),
+      codigoIATA: form.value.codigo.toUpperCase().trim(),
       nombre: form.value.nombre.trim(),
+      ciudad: form.value.pais.trim(),
       pais: form.value.pais.trim()
     }
 
@@ -161,7 +165,7 @@ const handleUpdateAirport = async () => {
     showToast(`Datos del aeropuerto actualizados correctamente.`)
     closeModal()
     await fetchAirports()
-  } catch (err) {
+  } catch (err: any) {
     showToast(err.message || 'Error al actualizar el aeropuerto.', 'error')
   } finally {
     loadingOperation.value = false
@@ -169,13 +173,14 @@ const handleUpdateAirport = async () => {
 }
 
 const handleDeleteAirport = async () => {
+  if (!selectedAirport.value) return
   loadingOperation.value = true
   try {
     await deleteAirport(selectedAirport.value.id)
     showToast(`Aeropuerto eliminado exitosamente del catálogo.`)
     closeModal()
     await fetchAirports()
-  } catch (err) {
+  } catch (err: any) {
     showToast(err.message || 'Error al eliminar el aeropuerto.', 'error')
   } finally {
     loadingOperation.value = false

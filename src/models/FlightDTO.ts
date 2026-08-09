@@ -13,6 +13,18 @@ export interface FlightDTO {
   uiStatus?: string;          // Usado internamente en UI
   uiType?: 'Arrival' | 'Departure'; // Usado internamente en UI
   uiTime?: string;            // Usado internamente en UI
+
+  // Campos legacy para compatibilidad de vistas
+  airline?: string;
+  flightNumber?: string;
+  originName?: string;
+  destinationName?: string;
+  origin?: string;
+  destination?: string;
+  departureTime?: string;
+  arrivalTime?: string;
+  status?: string;
+  gate?: string;
 }
 
 export interface FlightFilterDTO {
@@ -22,6 +34,7 @@ export interface FlightFilterDTO {
   estado?: string;
   aerolineaId?: string;
   fecha?: string;
+  keyword?: string;
 }
 
 export interface PaginatedResponse<T> {

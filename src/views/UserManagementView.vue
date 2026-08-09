@@ -127,7 +127,7 @@ const handleCreate = async () => {
     showToast(`Usuario "${f.nombre}" registrado exitosamente.`)
     closeModal()
     await fetchInternalUsers()
-  } catch (err) {
+  } catch (err: any) {
     showToast(err.message || 'Error al registrar el usuario.', 'error')
   } finally {
     loadingOp.value = false
@@ -135,6 +135,7 @@ const handleCreate = async () => {
 }
 
 const handleUpdate = async () => {
+  if (!selectedUser.value) return
   const f = editForm.value
   if (!f.nombre || !f.rol) {
     showToast('Completa todos los campos requeridos.', 'error'); return
@@ -145,7 +146,7 @@ const handleUpdate = async () => {
     showToast(`Usuario actualizado correctamente.`)
     closeModal()
     await fetchInternalUsers()
-  } catch (err) {
+  } catch (err: any) {
     showToast(err.message || 'Error al actualizar el usuario.', 'error')
   } finally {
     loadingOp.value = false
@@ -153,13 +154,14 @@ const handleUpdate = async () => {
 }
 
 const handleDeactivate = async () => {
+  if (!selectedUser.value) return
   loadingOp.value = true
   try {
     await deactivateUser(selectedUser.value.id)
     showToast(`Usuario "${selectedUser.value.nombre}" desactivado.`)
     closeModal()
     await fetchInternalUsers()
-  } catch (err) {
+  } catch (err: any) {
     showToast(err.message || 'Error al desactivar el usuario.', 'error')
   } finally {
     loadingOp.value = false
@@ -167,13 +169,14 @@ const handleDeactivate = async () => {
 }
 
 const handleActivate = async () => {
+  if (!selectedUser.value) return
   loadingOp.value = true
   try {
     await activateUser(selectedUser.value.id)
     showToast(`Usuario "${selectedUser.value.nombre}" activado.`)
     closeModal()
     await fetchInternalUsers()
-  } catch (err) {
+  } catch (err: any) {
     showToast(err.message || 'Error al activar el usuario.', 'error')
   } finally {
     loadingOp.value = false
@@ -181,8 +184,8 @@ const handleActivate = async () => {
 }
 
 // Badge para estado activo/inactivo
-const roleBadge = (rol) => {
-  const map = {
+const roleBadge = (rol: string) => {
+  const map: Record<string, string> = {
     'Administrador': 'badge-admin',
     'Operador': 'badge-operador',
     'Auditor': 'badge-auditor'

@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useAudit } from '../composables/useAudit'
 
-const { logs, loading, error, totalPages, currentPage, fetchLogs, exportLogsCsv } = useAudit()
+const { logs, loading, error, totalCount, totalPages, currentPage, fetchLogs, exportLogsCsv } = useAudit()
 
 const filterFechaInicio = ref('')
 const filterFechaFin = ref('')
@@ -37,7 +37,7 @@ const handleExport = () => {
   })
 }
 
-const formatDate = (dateStr) => {
+const formatDate = (dateStr: any) => {
   if (!dateStr) return 'N/A'
   return new Date(dateStr).toLocaleString('es-DO', {
     year: 'numeric', month: 'short', day: '2-digit',
@@ -45,24 +45,24 @@ const formatDate = (dateStr) => {
   })
 }
 
-const parseDetalles = (jsonStr) => {
+const parseDetalles = (jsonStr: any) => {
   if (!jsonStr) return null;
   try {
     const parsed = JSON.parse(jsonStr);
     if (parsed.Entidad || parsed.ValoresNuevos) return parsed;
     return null;
-  } catch (e) {
+  } catch {
     return null;
   }
 }
 
-const formatActionName = (action) => {
+const formatActionName = (action: any) => {
   if (!action) return 'Desconocido'
   // Inserts space before uppercase letters
   return action.replace(/([A-Z])/g, ' $1').trim()
 }
 
-const getActionClass = (action) => {
+const getActionClass = (action: any) => {
   const lower = (action || '').toLowerCase()
   if (lower.includes('crear') || lower.includes('activar')) {
     return 'badge-green'

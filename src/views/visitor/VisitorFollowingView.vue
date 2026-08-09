@@ -13,7 +13,7 @@ const showToast = (message: string, type = 'success') => {
   setTimeout(() => { toast.value.show = false }, 3500)
 }
 
-const formatTime = (dateStr: string | undefined) => {
+const formatTime = (dateStr: string | null | undefined) => {
   if (!dateStr) return '--:--'
   try {
     return new Date(dateStr).toLocaleTimeString('es-DO', {

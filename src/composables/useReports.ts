@@ -52,11 +52,34 @@ export function useReports() {
     }
   }
 
+  const exportReportCsv = async (tipo: string, fechaInicio: string, fechaFin: string) => {
+    loading.value = true
+    error.value = null
+    try {
+      const data = await reportsService.exportReportCsv(tipo, fechaInicio, fechaFin)
+      const url = window.URL.createObjectURL(new Blob([data]))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', `reporte_${tipo}_${new Date().toISOString().split('T')[0]}.csv`)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (err: any) {
+      console.error('Error exporting report:', err)
+      error.value = err.response?.data?.errorMessage || err.message || 'Error al exportar el reporte'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     loading,
     error,
     fetchOperacionReport,
     fetchCambiosOperativos,
-    fetchSeguimientoReport
+    fetchSeguimientoReport,
+    exportReportCsv
   }
 }

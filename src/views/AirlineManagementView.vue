@@ -123,6 +123,7 @@ const handleCreateAirline = async () => {
   try {
     const command = {
       codigo: form.value.codigo.toUpperCase().trim(),
+      codigoIATA: form.value.codigo.toUpperCase().trim(),
       nombre: form.value.nombre.trim()
     }
 
@@ -130,7 +131,7 @@ const handleCreateAirline = async () => {
     showToast(`La aerolínea "${command.nombre}" fue registrada exitosamente.`)
     closeModal()
     await fetchAirlines()
-  } catch (err) {
+  } catch (err: any) {
     showToast(err.message || 'Error al registrar la aerolínea.', 'error')
   } finally {
     loadingOperation.value = false
@@ -138,6 +139,7 @@ const handleCreateAirline = async () => {
 }
 
 const handleUpdateAirline = async () => {
+  if (!selectedAirline.value) return
   if (!form.value.codigo || !form.value.nombre) {
     showToast('Por favor rellene todos los campos obligatorios.', 'error')
     return
@@ -147,6 +149,7 @@ const handleUpdateAirline = async () => {
   try {
     const command = {
       codigo: form.value.codigo.toUpperCase().trim(),
+      codigoIATA: form.value.codigo.toUpperCase().trim(),
       nombre: form.value.nombre.trim()
     }
 
@@ -154,7 +157,7 @@ const handleUpdateAirline = async () => {
     showToast(`Datos de la aerolínea actualizados correctamente.`)
     closeModal()
     await fetchAirlines()
-  } catch (err) {
+  } catch (err: any) {
     showToast(err.message || 'Error al actualizar la aerolínea.', 'error')
   } finally {
     loadingOperation.value = false
@@ -162,13 +165,14 @@ const handleUpdateAirline = async () => {
 }
 
 const handleDeleteAirline = async () => {
+  if (!selectedAirline.value) return
   loadingOperation.value = true
   try {
     await deleteAirline(selectedAirline.value.id)
     showToast(`Aerolínea eliminada exitosamente del catálogo.`)
     closeModal()
     await fetchAirlines()
-  } catch (err) {
+  } catch (err: any) {
     showToast(err.message || 'Error al eliminar la aerolínea.', 'error')
   } finally {
     loadingOperation.value = false

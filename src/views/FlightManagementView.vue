@@ -72,7 +72,7 @@ const loadingDetails = ref(false)
 const errorDetails = ref<string | null>(null)
 
 // Form fields
-const form = ref({
+const form = ref<any>({
   numeroVuelo: '',
   aerolinea: '',
   origen: '',
@@ -116,7 +116,7 @@ onUnmounted(() => {
   offFlightChanged(handleFlightUpdated)
 })
 
-const handleFlightUpdated = (payload) => {
+const handleFlightUpdated = (payload: any) => {
   updateFlightFromPayload(payload)
 }
 
@@ -125,7 +125,7 @@ watch(() => searchFilter.value.pageNumber, () => {
   fetchFlights()
 })
 
-const formatDateTime = (isoString) => {
+const formatDateTime = (isoString: any) => {
   if (!isoString) return '-'
   const date = new Date(isoString)
   return date.toLocaleDateString('es-DO', { 
@@ -138,7 +138,7 @@ const formatDateTime = (isoString) => {
 }
 
 // Helper para código IATA
-const getAirportCode = (name) => {
+const getAirportCode = (name: any) => {
   if (!name) return 'N/A'
   const airport = airports.value.find(a => a.nombre === name)
   return airport ? airport.codigo : name.substring(0, 3).toUpperCase()
@@ -158,7 +158,7 @@ const openCreateModal = () => {
   activeModal.value = 'create'
 }
 
-const openEditModal = (flight) => {
+const openEditModal = (flight: any) => {
   showDetailsModal.value = false
   selectedFlight.value = flight
   
@@ -181,7 +181,7 @@ const openEditModal = (flight) => {
   activeModal.value = 'edit'
 }
 
-const openStatusModal = (flight) => {
+const openStatusModal = (flight: any) => {
   showDetailsModal.value = false
   selectedFlight.value = flight
   
@@ -195,7 +195,7 @@ const openStatusModal = (flight) => {
   activeModal.value = 'status'
 }
 
-const openDelayModal = (flight) => {
+const openDelayModal = (flight: any) => {
   showDetailsModal.value = false
   selectedFlight.value = flight
   form.value = {
@@ -205,7 +205,7 @@ const openDelayModal = (flight) => {
   activeModal.value = 'delay'
 }
 
-const openAdvanceModal = (flight) => {
+const openAdvanceModal = (flight: any) => {
   showDetailsModal.value = false
   selectedFlight.value = flight
   form.value = {
@@ -215,7 +215,7 @@ const openAdvanceModal = (flight) => {
   activeModal.value = 'advance'
 }
 
-const openCancelModal = (flight) => {
+const openCancelModal = (flight: any) => {
   showDetailsModal.value = false
   selectedFlight.value = flight
   form.value = {
@@ -224,7 +224,7 @@ const openCancelModal = (flight) => {
   activeModal.value = 'cancel'
 }
 
-const openFlightDetails = async (flightId) => {
+const openFlightDetails = async (flightId: any) => {
   // Autocompletar el buscador con el vuelo seleccionado
   const flight = flights.value.find(f => f.id === flightId);
   if (flight && searchFilter.value) {
@@ -238,7 +238,7 @@ const openFlightDetails = async (flightId) => {
   try {
     const details = await fetchFlightDetails(flightId)
     selectedDetails.value = details
-  } catch (err) {
+  } catch (err: any) {
     errorDetails.value = err.message || 'No se pudo cargar la información detallada de este vuelo.'
   } finally {
     loadingDetails.value = false
@@ -279,7 +279,7 @@ const handleCreateFlight = async () => {
     showToast(`El vuelo ${command.numeroVuelo} fue programado exitosamente.`)
     closeModal()
     fetchFlights()
-  } catch (err) {
+  } catch (err: any) {
     showToast(err.message || 'Error al programar el vuelo.', 'error')
   } finally {
     loadingOperation.value = false
@@ -287,6 +287,7 @@ const handleCreateFlight = async () => {
 }
 
 const handleUpdateBasics = async () => {
+  if (!selectedFlight.value) return
   if (!form.value.aerolinea || !form.value.origen || !form.value.destino || !form.value.horarioPlanificadoSalida || !form.value.horarioPlanificadoLlegada) {
     showToast('Por favor rellene todos los campos obligatorios.', 'error')
     return
@@ -307,7 +308,7 @@ const handleUpdateBasics = async () => {
     showToast(`Datos básicos del vuelo ${selectedFlight.value.numeroVuelo} actualizados.`)
     closeModal()
     fetchFlights()
-  } catch (err) {
+  } catch (err: any) {
     showToast(err.message || 'Error al actualizar datos del vuelo.', 'error')
   } finally {
     loadingOperation.value = false
@@ -315,6 +316,7 @@ const handleUpdateBasics = async () => {
 }
 
 const handleUpdateStatus = async () => {
+  if (!selectedFlight.value) return
   if (!form.value.motivo) {
     showToast('Debe ingresar un motivo para el cambio de estado.', 'error')
     return
@@ -332,7 +334,7 @@ const handleUpdateStatus = async () => {
     showToast(`Estado del vuelo actualizado correctamente.`)
     closeModal()
     fetchFlights()
-  } catch (err) {
+  } catch (err: any) {
     showToast(err.message || 'Error al actualizar el estado del vuelo.', 'error')
   } finally {
     loadingOperation.value = false
@@ -340,6 +342,7 @@ const handleUpdateStatus = async () => {
 }
 
 const handleRegisterDelay = async () => {
+  if (!selectedFlight.value) return
   if (!form.value.nuevaHoraSalida || !form.value.motivo) {
     showToast('Rellene la nueva hora de salida y el motivo del retraso.', 'error')
     return
@@ -357,7 +360,7 @@ const handleRegisterDelay = async () => {
     showToast(`Retraso registrado correctamente para el vuelo.`)
     closeModal()
     fetchFlights()
-  } catch (err) {
+  } catch (err: any) {
     showToast(err.message || 'Error al registrar el retraso.', 'error')
   } finally {
     loadingOperation.value = false
@@ -365,6 +368,7 @@ const handleRegisterDelay = async () => {
 }
 
 const handleRegisterAdvance = async () => {
+  if (!selectedFlight.value) return
   if (!form.value.nuevaHoraSalida || !form.value.motivo) {
     showToast('Rellene la nueva hora de salida y el motivo del adelanto.', 'error')
     return
@@ -382,7 +386,7 @@ const handleRegisterAdvance = async () => {
     showToast(`Adelanto operativo registrado correctamente.`)
     closeModal()
     fetchFlights()
-  } catch (err) {
+  } catch (err: any) {
     showToast(err.message || 'Error al registrar el adelanto.', 'error')
   } finally {
     loadingOperation.value = false
@@ -390,6 +394,7 @@ const handleRegisterAdvance = async () => {
 }
 
 const handleCancelFlight = async () => {
+  if (!selectedFlight.value) return
   if (!form.value.motivo) {
     showToast('Debe ingresar un motivo para cancelar el vuelo.', 'error')
     return
@@ -406,7 +411,7 @@ const handleCancelFlight = async () => {
     showToast(`Vuelo cancelado exitosamente.`)
     closeModal()
     fetchFlights()
-  } catch (err) {
+  } catch (err: any) {
     showToast(err.message || 'Error al cancelar el vuelo.', 'error')
   } finally {
     loadingOperation.value = false

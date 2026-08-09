@@ -7,7 +7,7 @@ const { notifications, loadingNotifications, fetchNotifications, markAsRead } = 
 const unread = computed(() => notifications.value.filter(n => !n.fueLeida))
 const read = computed(() => notifications.value.filter(n => n.fueLeida))
 
-const formatDate = (dateStr) => {
+const formatDate = (dateStr: any) => {
   if (!dateStr) return ''
   try {
     return new Date(dateStr).toLocaleString('es-DO', {
@@ -17,7 +17,7 @@ const formatDate = (dateStr) => {
   } catch { return dateStr }
 }
 
-const handleMarkRead = async (notif) => {
+const handleMarkRead = async (notif: any) => {
   try {
     await markAsRead(notif.id)
     // El estado se actualiza de forma optimista dentro de markAsRead

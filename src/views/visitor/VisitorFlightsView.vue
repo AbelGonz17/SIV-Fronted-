@@ -8,7 +8,7 @@ const { flights, loading, error, searchFilter, filteredFlights, fetchFlights, fe
 const { myFlights, followFlight, unfollowFlight, fetchMyFlights } = useVisitor()
 
 const toast = ref({ show: false, message: '', type: 'success' })
-const showToast = (message, type = 'success') => {
+const showToast = (message: string, type = 'success') => {
   toast.value = { show: true, message, type }
   setTimeout(() => { toast.value.show = false }, 3500)
 }
@@ -19,13 +19,13 @@ const selectedFlightDetails = ref(null)
 const modalLoading = ref(false)
 const modalError = ref(null)
 
-const openDetails = async (flightId) => {
+const openDetails = async (flightId: any) => {
   modalLoading.value = true
   modalError.value = null
   showModal.value = true
   try {
     selectedFlightDetails.value = await fetchFlightDetails(flightId)
-  } catch (err) {
+  } catch (err: any) {
     modalError.value = err?.message || 'Error al cargar detalles.'
   } finally {
     modalLoading.value = false
@@ -41,39 +41,39 @@ const followingIds = computed(() => new Set(myFlights.value.map(f => f.vueloId))
 
 const actionLoading = ref(null)
 
-const handleFollow = async (flight) => {
+const handleFollow = async (flight: any) => {
   actionLoading.value = flight.id
   try {
     await followFlight(flight.id)
     await fetchMyFlights()
     showToast(`✓ Ahora sigues el vuelo ${flight.flightNumber}`)
-  } catch (err) {
+  } catch (err: any) {
     showToast(err.message || 'Error al seguir el vuelo.', 'error')
   } finally {
     actionLoading.value = null
   }
 }
 
-const handleUnfollow = async (flight) => {
+const handleUnfollow = async (flight: any) => {
   actionLoading.value = flight.id
   try {
     await unfollowFlight(flight.id)
     await fetchMyFlights()
     showToast(`Dejaste de seguir el vuelo ${flight.flightNumber}.`)
-  } catch (err) {
+  } catch (err: any) {
     showToast(err.message || 'Error al dejar de seguir.', 'error')
   } finally {
     actionLoading.value = null
   }
 }
 
-const formatTime = (dateStr) => {
+const formatTime = (dateStr: any) => {
   if (!dateStr) return '--:--'
   try { return new Date(dateStr).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit', hour12: true }) }
   catch { return '--:--' }
 }
 
-const statusClass = (status) => {
+const statusClass = (status: any) => {
   if (!status) return ''
   const s = status.toLowerCase()
   if (s.includes('cancel')) return 'badge-cancelled'
@@ -83,7 +83,7 @@ const statusClass = (status) => {
   return 'badge-ontime'
 }
 
-const statusLabel = (status) => {
+const statusLabel = (status: any) => {
   if (!status) return 'En Hora'
   const s = status.toLowerCase()
   if (s.includes('cancel')) return 'Cancelado'
@@ -116,7 +116,7 @@ onMounted(async () => {
   await Promise.all([fetchFlights(), fetchMyFlights()])
 })
 
-const changeTab = async (tab) => {
+const changeTab = async (tab: any) => {
   activeTab.value = tab
   if (tab === 'departures') searchFilter.value.esLlegada = 'false'
   else if (tab === 'arrivals') searchFilter.value.esLlegada = 'true'

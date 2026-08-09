@@ -20,14 +20,14 @@ const { startConnection, stopConnection, onPersonalAlert, offPersonalAlert } = u
 const unreadCount = computed(() => notifications.value.filter(n => !n.fueLeida).length)
 const toast = ref({ show: false, message: '' })
 
-let toastTimeout = null
-const showToast = (message) => {
+let toastTimeout: any = null
+const showToast = (message: string) => {
   toast.value = { show: true, message }
   if (toastTimeout) clearTimeout(toastTimeout)
   toastTimeout = setTimeout(() => { toast.value.show = false }, 5000)
 }
 
-const handleAlert = (mensaje) => {
+const handleAlert = (mensaje: string) => {
   addNotification(mensaje)
   showToast(mensaje)
 }

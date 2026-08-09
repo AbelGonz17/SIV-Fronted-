@@ -71,7 +71,6 @@ export function useFlights() {
     pageSize: 20,
     esLlegada: '',
     estado: '',
-    estado: '',
     aerolineaId: '',
     fecha: '',
     keyword: ''

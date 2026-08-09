@@ -21,9 +21,9 @@ const { loading, error, fetchOperacionReport, fetchCambiosOperativos, fetchSegui
 const fechaInicio = ref(new Date(new Date().setDate(new Date().getDate() - 7)).toISOString().split('T')[0])
 const fechaFin = ref(new Date().toISOString().split('T')[0])
 
-const operacionData = ref(null)
-const cambiosData = ref([])
-const seguimientoData = ref(null)
+const operacionData = ref<any>(null)
+const cambiosData = ref<any>([])
+const seguimientoData = ref<any>(null)
 
 const loadDashboard = async () => {
   try {
@@ -40,11 +40,11 @@ const loadDashboard = async () => {
   }
 }
 
-const handleExport = (tipo) => {
+const handleExport = (tipo: any) => {
   exportReportCsv(tipo, fechaInicio.value, fechaFin.value)
 }
 
-const formatDate = (dateStr) => {
+const formatDate = (dateStr: any) => {
   if (!dateStr) return 'N/A'
   return new Date(dateStr).toLocaleString('es-DO', {
     year: 'numeric', month: 'short', day: '2-digit',
@@ -82,24 +82,47 @@ const doughnutOptions = {
   maintainAspectRatio: false,
   plugins: {
     legend: {
-      position: 'bottom',
+      position: 'bottom' as const,
       labels: { color: '#9ca3af' }
     }
   }
 }
 
+// Robust computed properties mapping properties returned by API
+const totalVuelos = computed(() => operacionData.value?.totalVuelos ?? 0)
+const completados = computed(() => operacionData.value?.completados ?? operacionData.value?.vuelosCompletados ?? 0)
+const retrasados = computed(() => operacionData.value?.retrasados ?? operacionData.value?.vuelosRetrasados ?? 0)
+const cancelados = computed(() => operacionData.value?.cancelados ?? operacionData.value?.vuelosCancelados ?? 0)
+const otros = computed(() => {
+  if (operacionData.value?.otros !== undefined) return operacionData.value.otros
+  if (operacionData.value?.vuelosOtros !== undefined) return operacionData.value.vuelosOtros
+  const calculated = totalVuelos.value - (completados.value + retrasados.value + cancelados.value)
+  return Math.max(0, calculated)
+})
+
 const barChartData = computed(() => {
-  if (!operacionData.value || !operacionData.value.vuelosPorDia) {
-    return { labels: [], datasets: [] }
+  const vuelos = operacionData.value?.vuelosPorDia || operacionData.value?.vuelosPorFecha || []
+  if (vuelos.length === 0) {
+    return {
+      labels: [new Date().toLocaleDateString('es-DO', { day: '2-digit', month: 'short' })],
+      datasets: [
+        {
+          label: 'Vuelos Programados',
+          backgroundColor: '#3b82f6',
+          borderRadius: 4,
+          data: [totalVuelos.value]
+        }
+      ]
+    }
   }
   return {
-    labels: operacionData.value.vuelosPorDia.map((v: any) => v.fecha),
+    labels: vuelos.map((v: any) => v.fecha || v.date || ''),
     datasets: [
       {
         label: 'Vuelos Programados',
         backgroundColor: '#3b82f6',
         borderRadius: 4,
-        data: operacionData.value.vuelosPorDia.map((v: any) => v.total)
+        data: vuelos.map((v: any) => v.total || v.count || 0)
       }
     ]
   }
@@ -116,10 +139,10 @@ const pieChartData = computed(() => {
         backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#6b7280'],
         borderWidth: 0,
         data: [
-          operacionData.value.completados,
-          operacionData.value.retrasados,
-          operacionData.value.cancelados,
-          operacionData.value.otros
+          completados.value,
+          retrasados.value,
+          cancelados.value,
+          otros.value
         ]
       }
     ]
@@ -170,7 +193,7 @@ onMounted(() => {
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             </button>
           </div>
-          <div class="kpi-value">{{ operacionData.totalVuelos }}</div>
+          <div class="kpi-value">{{ totalVuelos }}</div>
           <div class="kpi-sub">En el período seleccionado</div>
         </div>
 
@@ -178,15 +201,15 @@ onMounted(() => {
           <div class="kpi-header">
             <h3>Vuelos Completados</h3>
           </div>
-          <div class="kpi-value">{{ operacionData.completados }}</div>
-          <div class="kpi-sub">{{ ((operacionData.completados / (operacionData.totalVuelos || 1)) * 100).toFixed(1) }}% del total</div>
+          <div class="kpi-value">{{ completados }}</div>
+          <div class="kpi-sub">{{ ((completados / (totalVuelos || 1)) * 100).toFixed(1) }}% del total</div>
         </div>
 
         <div class="kpi-card glass-card warning">
           <div class="kpi-header">
             <h3>Retrasados / Otros</h3>
           </div>
-          <div class="kpi-value">{{ operacionData.retrasados }} / {{ operacionData.otros }}</div>
+          <div class="kpi-value">{{ retrasados }} / {{ otros }}</div>
           <div class="kpi-sub">Cambios operativos</div>
         </div>
 
@@ -194,7 +217,7 @@ onMounted(() => {
           <div class="kpi-header">
             <h3>Cancelados</h3>
           </div>
-          <div class="kpi-value">{{ operacionData.cancelados }}</div>
+          <div class="kpi-value">{{ cancelados }}</div>
           <div class="kpi-sub">Operaciones suspendidas</div>
         </div>
       </div>
@@ -268,7 +291,7 @@ onMounted(() => {
           
           <div class="tracking-list">
             <div class="tracking-item" v-for="(vuelo, idx) in seguimientoData.topVuelosMasSeguidos" :key="idx">
-              <div class="tracking-rank">#{{ idx + 1 }}</div>
+              <div class="tracking-rank">#{{ Number(idx) + 1 }}</div>
               <div class="tracking-info">
                 <div class="tracking-flight">{{ vuelo.numeroVuelo }}</div>
                 <div class="tracking-state">{{ vuelo.estadoActual }}</div>
