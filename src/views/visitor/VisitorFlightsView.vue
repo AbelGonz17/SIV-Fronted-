@@ -615,6 +615,13 @@ const changeTab = async (tab: any) => {
   text-align: center;
 }
 
+.empty-state svg {
+  width: 48px;
+  height: 48px;
+  color: var(--color-text-muted);
+}
+
+
 /* Toast */
 .v-toast {
   position: fixed;
