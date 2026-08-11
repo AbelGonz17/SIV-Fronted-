@@ -17,7 +17,8 @@ const {
   fetchAirlines,
   createAirline,
   updateAirline,
-  deleteAirline
+  deleteAirline,
+  activateAirline
 } = useAirlines()
 
 // Buscador local
@@ -38,7 +39,7 @@ const showToast = (message: string, type: 'success' | 'error' = 'success') => {
 }
 
 // Modal control
-const activeModal = ref<'create' | 'edit' | 'delete' | null>(null) // 'create' | 'edit' | 'delete'
+const activeModal = ref<'create' | 'edit' | 'delete' | 'activate' | null>(null) // 'create' | 'edit' | 'delete' | 'activate'
 const selectedAirline = ref<AirlineDTO | null>(null)
 const loadingOperation = ref(false)
 
@@ -105,6 +106,11 @@ const openEditModal = (airline: AirlineDTO) => {
 const openDeleteModal = (airline: AirlineDTO) => {
   selectedAirline.value = airline
   activeModal.value = 'delete'
+}
+
+const openActivateModal = (airline: AirlineDTO) => {
+  selectedAirline.value = airline
+  activeModal.value = 'activate'
 }
 
 const closeModal = () => {
@@ -174,6 +180,21 @@ const handleDeleteAirline = async () => {
     await fetchAirlines()
   } catch (err: any) {
     showToast(err.message || 'Error al eliminar la aerolínea.', 'error')
+  } finally {
+    loadingOperation.value = false
+  }
+}
+
+const handleActivateAirline = async () => {
+  if (!selectedAirline.value) return
+  loadingOperation.value = true
+  try {
+    await activateAirline(selectedAirline.value.id)
+    showToast(`Aerolínea reactivada exitosamente.`)
+    closeModal()
+    await fetchAirlines()
+  } catch (err: any) {
+    showToast(err.message || 'Error al activar la aerolínea.', 'error')
   } finally {
     loadingOperation.value = false
   }
@@ -306,8 +327,11 @@ const handleDeleteAirline = async () => {
                   <button @click="openEditModal(airline)" class="btn-icon primary" title="Editar aerolínea">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                   </button>
-                  <button @click="openDeleteModal(airline)" class="btn-icon danger" title="Eliminar aerolínea">
+                  <button v-if="airline.activo" @click="openDeleteModal(airline)" class="btn-icon danger" title="Desactivar aerolínea">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                  </button>
+                  <button v-else @click="openActivateModal(airline)" class="btn-icon success" title="Activar aerolínea">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
                   </button>
                 </div>
               </td>
@@ -396,17 +420,37 @@ const handleDeleteAirline = async () => {
       <div v-if="activeModal === 'delete'" class="modal-backdrop" @click="closeModal">
         <div class="modal-container glass-card" @click.stop>
           <button class="modal-close" @click="closeModal">&times;</button>
-          <h2 class="modal-title text-danger">Eliminar Aerolínea</h2>
-          <p class="modal-subtitle">¿Está seguro de que desea eliminar la aerolínea <strong>{{ selectedAirline?.nombre }}</strong>?</p>
+          <h2 class="modal-title text-danger">Desactivar Aerolínea</h2>
+          <p class="modal-subtitle">¿Está seguro de que desea desactivar la aerolínea <strong>{{ selectedAirline?.nombre }}</strong>?</p>
           
           <div class="alert-box-warning" style="margin-top: 1rem; padding: 0.75rem 1rem; border-radius: 6px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #f87171; font-size: 0.85rem; line-height: 1.4;">
-            Esta acción es irreversible y podría causar errores en los vuelos que hagan referencia a esta aerolínea.
+            Esta acción desactivará la aerolínea y podría causar advertencias en los vuelos que hagan referencia a ella.
           </div>
 
           <div class="modal-footer" style="margin-top: 1.5rem;">
             <button @click="closeModal" class="btn btn-secondary" :disabled="loadingOperation">Cancelar</button>
             <button @click="handleDeleteAirline" class="btn btn-danger" :disabled="loadingOperation">
-              {{ loadingOperation ? 'Eliminando...' : 'Sí, Eliminar' }}
+              {{ loadingOperation ? 'Desactivando...' : 'Sí, Desactivar' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Activar Aerolínea -->
+      <div v-if="activeModal === 'activate'" class="modal-backdrop" @click="closeModal">
+        <div class="modal-container glass-card" @click.stop>
+          <button class="modal-close" @click="closeModal">&times;</button>
+          <h2 class="modal-title text-success" style="color: #10b981;">Activar Aerolínea</h2>
+          <p class="modal-subtitle">¿Está seguro de que desea activar la aerolínea <strong>{{ selectedAirline?.nombre }}</strong>?</p>
+          
+          <div class="alert-box-warning" style="margin-top: 1rem; padding: 0.75rem 1rem; border-radius: 6px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); color: #34d399; font-size: 0.85rem; line-height: 1.4;">
+            Esta acción reactivará la aerolínea en el sistema y permitirá programar nuevos vuelos utilizando esta aerolínea.
+          </div>
+
+          <div class="modal-footer" style="margin-top: 1.5rem;">
+            <button @click="closeModal" class="btn btn-secondary" :disabled="loadingOperation">Cancelar</button>
+            <button @click="handleActivateAirline" class="btn btn-primary" style="background: #10b981; border-color: #10b981; color: white;" :disabled="loadingOperation">
+              {{ loadingOperation ? 'Activando...' : 'Sí, Activar' }}
             </button>
           </div>
         </div>

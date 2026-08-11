@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { authService } from '../services/authService'
+import { getErrorMessage } from '../services/apiClient'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -54,11 +55,7 @@ const handleRegister = async () => {
       setTimeout(() => router.push('/login'), 2000)
     }
   } catch (err: any) {
-    if (err.response && err.response.data) {
-        localError.value = err.response.data.errorMessage || err.response.data.detail || 'Ocurrió un error al crear la cuenta.'
-    } else {
-        localError.value = err.message || 'Ocurrió un error al crear la cuenta.'
-    }
+    localError.value = getErrorMessage(err)
   } finally {
     loading.value = false
   }

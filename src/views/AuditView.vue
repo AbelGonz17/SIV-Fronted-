@@ -37,6 +37,15 @@ const handleExport = () => {
   })
 }
 
+const clearFilters = () => {
+  filterFechaInicio.value = ''
+  filterFechaFin.value = ''
+  filterAccion.value = ''
+  filterBusqueda.value = ''
+  loadData(1)
+}
+
+
 const formatDate = (dateStr: any) => {
   if (!dateStr) return 'N/A'
   return new Date(dateStr).toLocaleString('es-DO', {
@@ -94,28 +103,43 @@ onMounted(() => {
       </button>
     </div>
 
-    <!-- Filtros -->
-    <div class="filters-card glass-card">
-      <div class="filter-group">
-        <label>Búsqueda Libre</label>
-        <input type="text" class="form-input" placeholder="Buscar usuario, entidad o detalle..." v-model="filterBusqueda" @keyup.enter="handleFilter">
+    <!-- Toolbar (Search & Filters) -->
+    <div class="toolbar-section glass-card single-row-toolbar">
+      <div class="search-box-wrapper toolbar-item-search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon-svg" style="color: #9ca3af;">
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+        <input 
+          v-model="filterBusqueda" 
+          type="text" 
+          placeholder="Buscar usuario, entidad o detalle..." 
+          class="form-input search-input-field"
+          @keyup.enter="handleFilter"
+        />
       </div>
-      <div class="filter-group">
-        <label>Fecha Desde</label>
+
+      <div class="date-filter-item">
+        <span class="date-label">Desde:</span>
         <input type="date" class="form-input" v-model="filterFechaInicio" @change="handleFilter">
       </div>
-      <div class="filter-group">
-        <label>Fecha Hasta</label>
+
+      <div class="date-filter-item">
+        <span class="date-label">Hasta:</span>
         <input type="date" class="form-input" v-model="filterFechaFin" @change="handleFilter">
       </div>
-      <div class="filter-group">
-        <label>Acción</label>
-        <select class="form-select" v-model="filterAccion" @change="handleFilter">
-          <option value="">Todas las acciones</option>
-          <option v-for="act in actionsList" :key="act" :value="act">{{ act }}</option>
-        </select>
-      </div>
+
+      <select v-model="filterAccion" class="form-input select-input toolbar-item-select" @change="handleFilter">
+        <option value="">Todas las acciones</option>
+        <option v-for="act in actionsList" :key="act" :value="act">{{ act }}</option>
+      </select>
+      
+      <button @click="clearFilters" class="btn-clear-filters" title="Limpiar Filtros">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        <span>Limpiar</span>
+      </button>
     </div>
+
 
     <!-- Estado de Carga / Error -->
     <div v-if="loading" class="loading-state">
@@ -224,24 +248,74 @@ onMounted(() => {
   align-items: center;
 }
 
-.filters-card {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+/* Toolbar enhancements */
+.single-row-toolbar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
   gap: 1rem;
-  padding: 1.5rem;
-  align-items: end;
+  padding: 0.75rem 1.25rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: nowrap;
 }
 
-.filter-group {
+.toolbar-item-search {
+  flex: 3;
+  min-width: 250px;
+}
+
+.toolbar-item-select {
+  flex: 1;
+  min-width: 140px;
+  padding: 0.6rem 2.5rem 0.6rem 1rem;
+}
+
+.date-filter-item {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 0.5rem;
 }
 
-.filter-group label {
+.date-label {
   font-size: 0.85rem;
-  font-weight: 600;
   color: var(--color-text-secondary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Search Box */
+.search-box-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.search-icon-svg {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  color: var(--color-text-muted);
+}
+
+.search-input-field { 
+  padding-left: 2.75rem !important; 
+  width: 100%; 
+}
+
+.search-input-field::placeholder {
+  color: #9ca3af;
+}
+
+@media (max-width: 1024px) {
+  .single-row-toolbar {
+    flex-wrap: wrap;
+  }
+  .toolbar-item-search, .toolbar-item-select, .date-filter-item {
+    flex: 1 1 auto;
+    width: 100%;
+  }
 }
 
 .table-container {
@@ -384,4 +458,25 @@ onMounted(() => {
 .py-4 { padding-top: 1rem; padding-bottom: 1rem; }
 .text-muted { color: var(--color-text-secondary); }
 .whitespace-nowrap { white-space: nowrap; }
+
+.btn-clear-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-clear-filters:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+}
 </style>
+

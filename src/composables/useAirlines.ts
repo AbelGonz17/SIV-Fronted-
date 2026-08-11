@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { airlinesService } from '../services/airlinesService'
 import type { AirlineDTO, CreateAirlineRequestDTO, UpdateAirlineRequestDTO } from '../models/AirlineDTO'
+import { getErrorMessage } from '../services/apiClient'
 
 export function useAirlines() {
   const airlines = ref<AirlineDTO[]>([])
@@ -14,51 +15,45 @@ export function useAirlines() {
       airlines.value = await airlinesService.getAll()
     } catch (err: any) {
       console.error('Error fetching airlines:', err)
-      error.value = err.response?.data?.errorMessage || err.message || 'Error al cargar catálogo de aerolíneas.'
+      error.value = getErrorMessage(err)
     } finally {
       loading.value = false
     }
   }
 
   const createAirline = async (command: CreateAirlineRequestDTO) => {
-    loading.value = true
-    error.value = null
     try {
       return await airlinesService.createAirline(command)
     } catch (err: any) {
       console.error('Error creating airline:', err)
-      error.value = err.response?.data?.errorMessage || err.message || 'Error al crear aerolínea.'
-      throw err
-    } finally {
-      loading.value = false
+      throw new Error(getErrorMessage(err))
     }
   }
 
   const updateAirline = async (id: string, command: UpdateAirlineRequestDTO) => {
-    loading.value = true
-    error.value = null
     try {
       return await airlinesService.updateAirline(id, command)
     } catch (err: any) {
       console.error('Error updating airline:', err)
-      error.value = err.response?.data?.errorMessage || err.message || 'Error al actualizar aerolínea.'
-      throw err
-    } finally {
-      loading.value = false
+      throw new Error(getErrorMessage(err))
     }
   }
 
   const deleteAirline = async (id: string) => {
-    loading.value = true
-    error.value = null
     try {
       return await airlinesService.deleteAirline(id)
     } catch (err: any) {
       console.error('Error deleting airline:', err)
-      error.value = err.response?.data?.errorMessage || err.message || 'Error al eliminar aerolínea.'
-      throw err
-    } finally {
-      loading.value = false
+      throw new Error(getErrorMessage(err))
+    }
+  }
+
+  const activateAirline = async (id: string) => {
+    try {
+      return await airlinesService.activateAirline(id)
+    } catch (err: any) {
+      console.error('Error activating airline:', err)
+      throw new Error(getErrorMessage(err))
     }
   }
 
@@ -69,6 +64,7 @@ export function useAirlines() {
     fetchAirlines,
     createAirline,
     updateAirline,
-    deleteAirline
+    deleteAirline,
+    activateAirline
   }
 }

@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { onMounted, computed } from 'vue'
+import { onMounted, computed, ref } from 'vue'
 import { useVisitor } from '../../composables/useVisitor'
 
 const { notifications, loadingNotifications, fetchNotifications, markAsRead } = useVisitor()
+
+const showRead = ref(true)
 
 const unread = computed(() => notifications.value.filter(n => !n.fueLeida))
 const read = computed(() => notifications.value.filter(n => n.fueLeida))
@@ -95,10 +97,21 @@ onMounted(fetchNotifications)
 
       <!-- Leídas -->
       <section v-if="read.length > 0" class="notif-section">
-        <div class="section-header" style="margin-top: 2rem">
+        <div class="section-header" style="margin-top: 2rem; display: flex; justify-content: space-between; align-items: center; width: 100%;">
           <span class="section-title" style="color:var(--color-text-muted)">Anteriores</span>
+          <button @click="showRead = !showRead" class="toggle-read-btn" :title="showRead ? 'Ocultar leídas' : 'Mostrar leídas'">
+            <svg v-if="showRead" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+              <line x1="1" y1="1" x2="23" y2="23"/>
+            </svg>
+            <span>{{ showRead ? 'Ocultar leídas' : 'Mostrar leídas' }}</span>
+          </button>
         </div>
-        <div class="notif-list">
+        <div v-if="showRead" class="notif-list">
           <div v-for="notif in read" :key="notif.id" class="notif-card notif-read glass-card">
             <div class="notif-icon read-icon">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
@@ -260,5 +273,25 @@ onMounted(fetchNotifications)
   border-color: rgba(16,185,129,0.4);
   background: rgba(16,185,129,0.08);
   color: #34d399;
+}
+
+.toggle-read-btn {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.2s ease;
+}
+
+.toggle-read-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.2);
 }
 </style>

@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { visitorService } from '../services/visitorService'
 import type { NotificationDTO, TrackedFlightDTO } from '../models/VisitorDTO'
+import { getErrorMessage } from '../services/apiClient'
 
 // Estado compartido singleton
 const myFlights = ref<TrackedFlightDTO[]>([])
@@ -17,7 +18,7 @@ export function useVisitor() {
       myFlights.value = await visitorService.getMyTrackedFlights()
     } catch (err: any) {
       console.error('fetchMyFlights:', err)
-      error.value = err.response?.data?.errorMessage || err.message || 'Error al obtener vuelos seguidos.'
+      error.value = getErrorMessage(err)
     } finally {
       loadingFlights.value = false
     }
@@ -28,7 +29,7 @@ export function useVisitor() {
       return await visitorService.followFlight(vueloId)
     } catch (err: any) {
       console.error('followFlight:', err)
-      throw new Error(err.response?.data?.errorMessage || 'Error al seguir el vuelo.')
+      throw new Error(getErrorMessage(err))
     }
   }
 
@@ -37,7 +38,7 @@ export function useVisitor() {
       return await visitorService.unfollowFlight(vueloId)
     } catch (err: any) {
       console.error('unfollowFlight:', err)
-      throw new Error(err.response?.data?.errorMessage || 'Error al dejar de seguir.')
+      throw new Error(getErrorMessage(err))
     }
   }
 
@@ -60,7 +61,7 @@ export function useVisitor() {
       if (notif) notif.fueLeida = true
     } catch (err: any) {
       console.error('markAsRead:', err)
-      throw new Error(err.response?.data?.errorMessage || 'Error al marcar notificación.')
+      throw new Error(getErrorMessage(err))
     }
   }
 

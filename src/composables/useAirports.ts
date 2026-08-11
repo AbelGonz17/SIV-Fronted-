@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { airportsService } from '../services/airportsService'
 import type { AirportDTO, CreateAirportRequestDTO, UpdateAirportRequestDTO } from '../models/AirportDTO'
+import { getErrorMessage } from '../services/apiClient'
 
 export function useAirports() {
   const airports = ref<AirportDTO[]>([])
@@ -14,51 +15,45 @@ export function useAirports() {
       airports.value = await airportsService.getAll()
     } catch (err: any) {
       console.error('Error fetching airports:', err)
-      error.value = err.response?.data?.errorMessage || err.message || 'Error al cargar catálogo de aeropuertos.'
+      error.value = getErrorMessage(err)
     } finally {
       loading.value = false
     }
   }
 
   const createAirport = async (command: CreateAirportRequestDTO) => {
-    loading.value = true
-    error.value = null
     try {
       return await airportsService.createAirport(command)
     } catch (err: any) {
       console.error('Error creating airport:', err)
-      error.value = err.response?.data?.errorMessage || err.message || 'Error al crear aeropuerto.'
-      throw err
-    } finally {
-      loading.value = false
+      throw new Error(getErrorMessage(err))
     }
   }
 
   const updateAirport = async (id: string, command: UpdateAirportRequestDTO) => {
-    loading.value = true
-    error.value = null
     try {
       return await airportsService.updateAirport(id, command)
     } catch (err: any) {
       console.error('Error updating airport:', err)
-      error.value = err.response?.data?.errorMessage || err.message || 'Error al actualizar aeropuerto.'
-      throw err
-    } finally {
-      loading.value = false
+      throw new Error(getErrorMessage(err))
     }
   }
 
   const deleteAirport = async (id: string) => {
-    loading.value = true
-    error.value = null
     try {
       return await airportsService.deleteAirport(id)
     } catch (err: any) {
       console.error('Error deleting airport:', err)
-      error.value = err.response?.data?.errorMessage || err.message || 'Error al eliminar aeropuerto.'
-      throw err
-    } finally {
-      loading.value = false
+      throw new Error(getErrorMessage(err))
+    }
+  }
+
+  const activateAirport = async (id: string) => {
+    try {
+      return await airportsService.activateAirport(id)
+    } catch (err: any) {
+      console.error('Error activating airport:', err)
+      throw new Error(getErrorMessage(err))
     }
   }
 
@@ -69,6 +64,7 @@ export function useAirports() {
     fetchAirports,
     createAirport,
     updateAirport,
-    deleteAirport
+    deleteAirport,
+    activateAirport
   }
 }

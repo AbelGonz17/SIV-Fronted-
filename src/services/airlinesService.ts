@@ -24,5 +24,10 @@ export const airlinesService = {
   async deleteAirline(id: string): Promise<any> {
     const response = await apiClient.delete(`/Aerolineas/${id}`)
     return response.data?.value || response.data
+  },
+
+  async activateAirline(id: string): Promise<any> {
+    const response = await apiClient.patch(`/Aerolineas/${id}/activar`)
+    return response.data?.value || response.data
   }
 }

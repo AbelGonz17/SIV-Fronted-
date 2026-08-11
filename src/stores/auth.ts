@@ -2,6 +2,7 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { authService } from '../services/authService'
 import type { UserDTO } from '../models/AuthDTO'
+import { getErrorMessage } from '../services/apiClient'
 
 // 1. Función parseJwt protegida contra nulos / tipos no válidos
 function parseJwt(token: string | null): Record<string, any> | null {
@@ -113,11 +114,7 @@ export const useAuthStore = defineStore('auth', () => {
       return true
 
     } catch (err: any) {
-      if (err.response && err.response.data) {
-          error.value = err.response.data.errorMessage || err.response.data.detail || 'Ocurrió un error al intentar iniciar sesión.'
-      } else {
-          error.value = err.message || 'No se pudo conectar con el servidor de autenticación.'
-      }
+      error.value = getErrorMessage(err)
       return false
     } finally {
       loading.value = false
@@ -162,11 +159,7 @@ export const useAuthStore = defineStore('auth', () => {
       })
       return true
     } catch (err: any) {
-      if (err.response && err.response.data) {
-          error.value = err.response.data.errorMessage || err.response.data.detail || 'Error al cambiar la contraseña.'
-      } else {
-          error.value = 'Error de red al intentar cambiar la contraseña.'
-      }
+      error.value = getErrorMessage(err)
       return false
     } finally {
       loading.value = false

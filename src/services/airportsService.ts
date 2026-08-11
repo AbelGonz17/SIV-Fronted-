@@ -24,5 +24,10 @@ export const airportsService = {
   async deleteAirport(id: string): Promise<any> {
     const response = await apiClient.delete(`/Aeropuertos/${id}`)
     return response.data?.value || response.data
+  },
+
+  async activateAirport(id: string): Promise<any> {
+    const response = await apiClient.patch(`/Aeropuertos/${id}/activar`)
+    return response.data?.value || response.data
   }
 }

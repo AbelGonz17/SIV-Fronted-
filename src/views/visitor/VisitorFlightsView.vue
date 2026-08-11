@@ -74,23 +74,35 @@ const formatTime = (dateStr: any) => {
 }
 
 const statusClass = (status: any) => {
-  if (!status) return ''
+  if (!status) return 'badge-ontime'
   const s = status.toLowerCase()
   if (s.includes('cancel')) return 'badge-cancelled'
   if (s.includes('delay') || s.includes('demora') || s.includes('retras')) return 'badge-delayed'
-  if (s.includes('board') || s.includes('abord')) return 'badge-boarding'
+  if (s.includes('board') || s.includes('abord') || s.includes('embarc')) return 'badge-boarding'
   if (s.includes('adelant') || s.includes('advanc')) return 'badge-advanced'
+  if (s.includes('aterriz') || s.includes('land')) return 'badge-aterrizado'
+  if (s.includes('complet') || s.includes('finish')) return 'badge-completado'
+  if (s.includes('vuelo') || s.includes('flight')) return 'badge-envuelo'
   return 'badge-ontime'
 }
 
 const statusLabel = (status: any) => {
-  if (!status) return 'En Hora'
+  if (!status) return 'Programado'
   const s = status.toLowerCase()
   if (s.includes('cancel')) return 'Cancelado'
   if (s.includes('delay') || s.includes('demora') || s.includes('retras')) return 'Demorado'
-  if (s.includes('board') || s.includes('abord')) return 'Abordando'
+  if (s.includes('board') || s.includes('abord') || s.includes('embarc')) return 'Embarcando'
   if (s.includes('adelant') || s.includes('advanc')) return 'Adelantado'
-  return 'En Hora'
+  if (s.includes('aterriz') || s.includes('land')) return 'Aterrizado'
+  if (s.includes('complet') || s.includes('finish')) return 'Completado'
+  if (s.includes('vuelo') || s.includes('flight')) return 'En Vuelo'
+  return 'Programado'
+}
+
+const isFinalStatus = (status: any) => {
+  if (!status) return false
+  const s = status.toLowerCase()
+  return s.includes('cancel') || s.includes('complet')
 }
 
 // Filtros UI
@@ -255,6 +267,15 @@ const changeTab = async (tab: any) => {
               <span class="btn-text-hover">Dejar de seguir</span>
             </button>
             <button
+              v-else-if="isFinalStatus(flight.status)"
+              disabled
+              class="follow-btn"
+              style="opacity: 0.45; cursor: not-allowed; border-color: rgba(255,255,255,0.05); background: rgba(255,255,255,0.02); color: var(--color-text-muted);"
+              title="Este vuelo ha finalizado y no se puede seguir."
+            >
+              <span class="btn-text">Finalizado</span>
+            </button>
+            <button
               v-else
               @click.stop="handleFollow(flight)"
               :disabled="actionLoading === flight.id"
@@ -417,6 +438,10 @@ const changeTab = async (tab: any) => {
 .badge-delayed  { background: rgba(245,158,11,0.12); color: #fbbf24; }
 .badge-cancelled{ background: rgba(239,68,68,0.12);  color: #f87171; }
 .badge-boarding { background: rgba(139,92,246,0.12); color: #c4b5fd; }
+.badge-aterrizado { background: rgba(236,72,153,0.12); color: #f472b6; }
+.badge-completado { background: rgba(16,185,129,0.12); color: #34d399; }
+.badge-envuelo    { background: rgba(59,130,246,0.12); color: #60a5fa; }
+.badge-advanced   { background: rgba(14, 165, 233, 0.12); color: #38bdf8; }
 
 /* Route Vertical Timeline Layout */
 .fc-route-timeline {

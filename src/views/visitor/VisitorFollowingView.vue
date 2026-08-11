@@ -51,7 +51,11 @@ const statusLabel = (estado: string) => {
   if (e.includes('cancel')) return 'Cancelado'
   if (e.includes('retras') || e.includes('demor')) return 'Demorado'
   if (e.includes('abord') || e.includes('embarc')) return 'Embarcando'
-  return 'En Hora'
+  if (e.includes('adelant') || e.includes('advanc')) return 'Adelantado'
+  if (e.includes('aterriz') || e.includes('land')) return 'Aterrizado'
+  if (e.includes('complet') || e.includes('finish')) return 'Completado'
+  if (e.includes('vuelo') || e.includes('flight')) return 'En Vuelo'
+  return 'Programado'
 }
 
 const statusClass = (estado: string) => {
@@ -59,6 +63,10 @@ const statusClass = (estado: string) => {
   if (e.includes('cancel')) return 'badge-cancelled'
   if (e.includes('retras') || e.includes('demor')) return 'badge-delayed'
   if (e.includes('abord') || e.includes('embarc')) return 'badge-boarding'
+  if (e.includes('adelant') || e.includes('advanc')) return 'badge-advanced'
+  if (e.includes('aterriz') || e.includes('land')) return 'badge-aterrizado'
+  if (e.includes('complet') || e.includes('finish')) return 'badge-completado'
+  if (e.includes('vuelo') || e.includes('flight')) return 'badge-envuelo'
   return 'badge-ontime'
 }
 
@@ -118,7 +126,7 @@ onMounted(fetchMyFlights)
       </div>
       <h3 class="empty-title">Aún no sigues ningún vuelo</h3>
       <p class="empty-desc">Explora el Panel de Vuelos y presiona "Seguir" para recibir actualizaciones aquí.</p>
-      <router-link to="/visitor/vuelos" class="empty-action-btn">
+      <router-link to="/visitante" class="empty-action-btn">
         Ir al Panel de Vuelos
       </router-link>
     </div>
@@ -359,6 +367,10 @@ onMounted(fetchMyFlights)
 .badge-delayed  { background: rgba(245,158,11,0.12); color: #fbbf24; }
 .badge-cancelled{ background: rgba(239,68,68,0.12);  color: #f87171; }
 .badge-boarding { background: rgba(139,92,246,0.12); color: #c4b5fd; }
+.badge-aterrizado { background: rgba(236,72,153,0.12); color: #f472b6; }
+.badge-completado { background: rgba(16,185,129,0.12); color: #34d399; }
+.badge-envuelo    { background: rgba(59,130,246,0.12); color: #60a5fa; }
+.badge-advanced   { background: rgba(14,165,233,0.12); color: #38bdf8; }
 
 /* Route Vertical Timeline Layout */
 .fc-route-timeline {

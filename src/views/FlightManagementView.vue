@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { onMounted, ref, watch, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useFlights } from '../composables/useFlights'
 import { useAuthStore } from '../stores/auth'
@@ -59,6 +59,33 @@ const STATUS_OPTIONS = [
   { value: 6, label: 'Retrasado' },
   { value: 7, label: 'Adelantado' }
 ]
+
+// Máquina de estados: define qué transiciones están permitidas desde cada estado
+const ALLOWED_TRANSITIONS: Record<number, number[]> = {
+  0: [0, 1, 5, 6, 7], // Programado -> Programado, Embarcando, Cancelado, Retrasado, Adelantado
+  1: [1, 2, 5, 6],    // Embarcando -> Embarcando, En Vuelo, Cancelado, Retrasado
+  2: [2, 3, 5],       // En Vuelo -> En Vuelo, Aterrizado, Cancelado
+  3: [3, 4],          // Aterrizado -> Aterrizado, Completado
+  4: [4],             // Completado (Final)
+  5: [5],             // Cancelado (Final)
+  6: [6, 1, 5],       // Retrasado -> Retrasado, Embarcando, Cancelado
+  7: [7, 1, 5]        // Adelantado -> Adelantado, Embarcando, Cancelado
+}
+
+// Filtra las opciones de estado permitidas según el estado actual del vuelo seleccionado
+const allowedStatusOptions = computed(() => {
+  if (!selectedFlight.value) return []
+  const currentStatusObj = STATUS_OPTIONS.find(s => s.label.toLowerCase() === (selectedFlight.value.estadoActual || selectedFlight.value.estado || '').toLowerCase())
+  const currentVal = currentStatusObj ? currentStatusObj.value : 0
+  const allowedVals = ALLOWED_TRANSITIONS[currentVal] || [currentVal]
+  return STATUS_OPTIONS.filter(opt => allowedVals.includes(opt.value))
+})
+
+const isFinalState = (flight: any) => {
+  if (!flight) return false
+  const statusStr = (flight.estadoActual || flight.estado || '').toLowerCase()
+  return statusStr.includes('completado') || statusStr.includes('cancelado')
+}
 
 // Modal control
 const activeModal = ref<'create' | 'edit' | 'status' | 'delay' | 'advance' | 'cancel' | null>(null)
@@ -263,6 +290,16 @@ const handleCreateFlight = async () => {
     return
   }
 
+  if (form.value.origen.trim().toLowerCase() === form.value.destino.trim().toLowerCase()) {
+    showToast('El aeropuerto de origen y destino no pueden ser iguales.', 'error')
+    return
+  }
+
+  if (new Date(form.value.horarioPlanificadoLlegada) <= new Date(form.value.horarioPlanificadoSalida)) {
+    showToast('La hora de llegada planificada debe ser posterior a la hora de salida.', 'error')
+    return
+  }
+
   loadingOperation.value = true
   try {
     const command = {
@@ -288,8 +325,22 @@ const handleCreateFlight = async () => {
 
 const handleUpdateBasics = async () => {
   if (!selectedFlight.value) return
+  if (isFinalState(selectedFlight.value)) {
+    showToast('No se pueden editar los datos de un vuelo finalizado o cancelado.', 'error')
+    return
+  }
   if (!form.value.aerolinea || !form.value.origen || !form.value.destino || !form.value.horarioPlanificadoSalida || !form.value.horarioPlanificadoLlegada) {
     showToast('Por favor rellene todos los campos obligatorios.', 'error')
+    return
+  }
+
+  if (form.value.origen.trim().toLowerCase() === form.value.destino.trim().toLowerCase()) {
+    showToast('El aeropuerto de origen y destino no pueden ser iguales.', 'error')
+    return
+  }
+
+  if (new Date(form.value.horarioPlanificadoLlegada) <= new Date(form.value.horarioPlanificadoSalida)) {
+    showToast('La hora de llegada planificada debe ser posterior a la hora de salida.', 'error')
     return
   }
 
@@ -317,6 +368,21 @@ const handleUpdateBasics = async () => {
 
 const handleUpdateStatus = async () => {
   if (!selectedFlight.value) return
+  if (isFinalState(selectedFlight.value)) {
+    showToast('No se puede cambiar el estado de un vuelo finalizado o cancelado.', 'error')
+    return
+  }
+
+  const currentStatusObj = STATUS_OPTIONS.find(s => s.label.toLowerCase() === (selectedFlight.value.estadoActual || selectedFlight.value.estado || '').toLowerCase())
+  const currentVal = currentStatusObj ? currentStatusObj.value : 0
+  const allowedVals = ALLOWED_TRANSITIONS[currentVal] || [currentVal]
+  const targetVal = parseInt(form.value.nuevoEstado)
+  
+  if (!allowedVals.includes(targetVal)) {
+    showToast('Transición de estado inválida para el flujo del vuelo.', 'error')
+    return
+  }
+
   if (!form.value.motivo) {
     showToast('Debe ingresar un motivo para el cambio de estado.', 'error')
     return
@@ -343,8 +409,19 @@ const handleUpdateStatus = async () => {
 
 const handleRegisterDelay = async () => {
   if (!selectedFlight.value) return
+  if (isFinalState(selectedFlight.value)) {
+    showToast('No se puede registrar un retraso para un vuelo finalizado o cancelado.', 'error')
+    return
+  }
   if (!form.value.nuevaHoraSalida || !form.value.motivo) {
     showToast('Rellene la nueva hora de salida y el motivo del retraso.', 'error')
+    return
+  }
+
+  const originalTime = new Date(selectedFlight.value.horarioPlanificadoSalida)
+  const newTime = new Date(form.value.nuevaHoraSalida)
+  if (newTime <= originalTime) {
+    showToast('La nueva hora de salida para un retraso debe ser posterior a la hora de salida planificada original.', 'error')
     return
   }
 
@@ -369,8 +446,19 @@ const handleRegisterDelay = async () => {
 
 const handleRegisterAdvance = async () => {
   if (!selectedFlight.value) return
+  if (isFinalState(selectedFlight.value)) {
+    showToast('No se puede registrar un adelanto para un vuelo finalizado o cancelado.', 'error')
+    return
+  }
   if (!form.value.nuevaHoraSalida || !form.value.motivo) {
     showToast('Rellene la nueva hora de salida y el motivo del adelanto.', 'error')
+    return
+  }
+
+  const originalTime = new Date(selectedFlight.value.horarioPlanificadoSalida)
+  const newTime = new Date(form.value.nuevaHoraSalida)
+  if (newTime >= originalTime) {
+    showToast('La nueva hora de salida para un adelanto debe ser anterior a la hora de salida planificada original.', 'error')
     return
   }
 
@@ -395,6 +483,10 @@ const handleRegisterAdvance = async () => {
 
 const handleCancelFlight = async () => {
   if (!selectedFlight.value) return
+  if (isFinalState(selectedFlight.value)) {
+    showToast('El vuelo ya se encuentra en un estado final (completado o cancelado).', 'error')
+    return
+  }
   if (!form.value.motivo) {
     showToast('Debe ingresar un motivo para cancelar el vuelo.', 'error')
     return
@@ -760,7 +852,7 @@ const handleCancelFlight = async () => {
             <div class="form-group">
               <label class="form-label" for="s-state">Nuevo Estado</label>
               <select id="s-state" v-model="form.nuevoEstado" class="form-input select-input" required>
-                <option v-for="opt in STATUS_OPTIONS" :key="opt.value" :value="opt.value">
+                <option v-for="opt in allowedStatusOptions" :key="opt.value" :value="opt.value">
                   {{ opt.label }}
                 </option>
               </select>
@@ -787,6 +879,10 @@ const handleCancelFlight = async () => {
           <button class="modal-close" @click="closeModal">&times;</button>
           <h2 class="modal-title">Registrar Retraso de Vuelo</h2>
           <p class="modal-subtitle">Establezca la nueva hora estimada de salida para el vuelo {{ selectedFlight?.numeroVuelo }}.</p>
+          
+          <div class="modal-info-box" style="margin: 1rem 0; padding: 0.75rem 1rem; background: rgba(251, 191, 36, 0.1); border-left: 4px solid #fbbf24; border-radius: 4px; font-size: 0.9rem; color: #fef08a;">
+            <strong>Horario programado/estimado actual:</strong> {{ formatDateTime(selectedFlight?.horarioEstimadoSalida || selectedFlight?.horarioPlanificadoSalida) }}
+          </div>
           
           <div class="form-fields">
             <div class="form-group">
@@ -815,6 +911,10 @@ const handleCancelFlight = async () => {
           <button class="modal-close" @click="closeModal">&times;</button>
           <h2 class="modal-title">Registrar Adelanto Operativo</h2>
           <p class="modal-subtitle">Establezca una hora de salida adelantada para el vuelo {{ selectedFlight?.numeroVuelo }}.</p>
+          
+          <div class="modal-info-box" style="margin: 1rem 0; padding: 0.75rem 1rem; background: rgba(52, 211, 153, 0.1); border-left: 4px solid #34d399; border-radius: 4px; font-size: 0.9rem; color: #a7f3d0;">
+            <strong>Horario programado/estimado actual:</strong> {{ formatDateTime(selectedFlight?.horarioEstimadoSalida || selectedFlight?.horarioPlanificadoSalida) }}
+          </div>
           
           <div class="form-fields">
             <div class="form-group">
@@ -901,26 +1001,33 @@ const handleCancelFlight = async () => {
 
             <!-- Botones de Operación (Solo para Operador) -->
             <div v-if="authStore.user?.role === 'Operador'" class="operation-actions-bar" style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.5rem;">
-              <button @click="openEditModal(selectedDetails)" class="btn btn-secondary btn-sm" title="Editar datos básicos">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                Editar
-              </button>
-              <button @click="openStatusModal(selectedDetails)" class="btn btn-secondary btn-sm" style="color: #c084fc; border-color: rgba(167, 139, 250, 0.4);" title="Cambiar estado del vuelo">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                Estado
-              </button>
-              <button @click="openDelayModal(selectedDetails)" class="btn btn-secondary btn-sm" style="color: #fbbf24; border-color: rgba(251, 191, 36, 0.4);" title="Registrar retraso">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                Retrasar
-              </button>
-              <button @click="openAdvanceModal(selectedDetails)" class="btn btn-secondary btn-sm" style="color: #34d399; border-color: rgba(52, 211, 153, 0.4);" title="Registrar adelanto operativo">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><polygon points="13 19 22 12 13 5 13 19"></polygon><polygon points="2 19 11 12 2 5 2 19"></polygon></svg>
-                Adelantar
-              </button>
-              <button @click="openCancelModal(selectedDetails)" class="btn btn-danger btn-sm" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; border-radius: 6px;" title="Cancelar vuelo">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
-                Cancelar
-              </button>
+              <template v-if="isFinalState(selectedDetails)">
+                <span style="font-size: 0.85rem; color: var(--color-text-muted); font-style: italic; align-self: center; padding: 0.4rem 0.8rem; background: rgba(255,255,255,0.03); border-radius: 6px; border: 1px dashed rgba(255,255,255,0.08);">
+                  Vuelo finalizado (no editable)
+                </span>
+              </template>
+              <template v-else>
+                <button @click="openEditModal(selectedDetails)" class="btn btn-secondary btn-sm" title="Editar datos básicos">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                  Editar
+                </button>
+                <button @click="openStatusModal(selectedDetails)" class="btn btn-secondary btn-sm" style="color: #c084fc; border-color: rgba(167, 139, 250, 0.4);" title="Cambiar estado del vuelo">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                  Estado
+                </button>
+                <button @click="openDelayModal(selectedDetails)" class="btn btn-secondary btn-sm" style="color: #fbbf24; border-color: rgba(251, 191, 36, 0.4);" title="Registrar retraso">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                  Retrasar
+                </button>
+                <button @click="openAdvanceModal(selectedDetails)" class="btn btn-secondary btn-sm" style="color: #34d399; border-color: rgba(52, 211, 153, 0.4);" title="Registrar adelanto operativo">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><polygon points="13 19 22 12 13 5 13 19"></polygon><polygon points="2 19 11 12 2 5 2 19"></polygon></svg>
+                  Adelantar
+                </button>
+                <button @click="openCancelModal(selectedDetails)" class="btn btn-danger btn-sm" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; border-radius: 6px;" title="Cancelar vuelo">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                  Cancelar
+                </button>
+              </template>
             </div>
 
             <!-- Ruta y Trayecto -->

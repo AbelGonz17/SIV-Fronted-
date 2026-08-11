@@ -5,6 +5,7 @@ import { airportsService } from '../services/airportsService'
 import type { FlightDTO, FlightFilterDTO } from '../models/FlightDTO'
 import type { AirlineDTO } from '../models/AirlineDTO'
 import type { AirportDTO } from '../models/AirportDTO'
+import { getErrorMessage } from '../services/apiClient'
 
 const AIRPORT_CODES: Record<string, string> = {
   'miami international airport': 'MIA',
@@ -174,7 +175,7 @@ export function useFlights() {
       if (err.response?.status === 401) {
           error.value = 'Sesión expirada o no autorizada. Por favor inicia sesión nuevamente.'
       } else {
-          error.value = err.message || 'Error al cargar la información de vuelos.'
+          error.value = getErrorMessage(err)
       }
     } finally {
       loading.value = false
@@ -257,7 +258,7 @@ export function useFlights() {
     try {
       await flightsService.register(command)
     } catch (err: any) {
-      throw new Error(err.response?.data?.errorMessage || 'Error al crear el vuelo.')
+      throw new Error(getErrorMessage(err))
     }
   }
 
@@ -265,7 +266,7 @@ export function useFlights() {
     try {
       await flightsService.updateBasic(id, request)
     } catch (err: any) {
-      throw new Error(err.response?.data?.errorMessage || 'Error al actualizar datos del vuelo.')
+      throw new Error(getErrorMessage(err))
     }
   }
 
@@ -273,7 +274,7 @@ export function useFlights() {
     try {
       await flightsService.updateStatus(command)
     } catch (err: any) {
-      throw new Error(err.response?.data?.errorMessage || 'Error al actualizar estado del vuelo.')
+      throw new Error(getErrorMessage(err))
     }
   }
 
@@ -281,7 +282,7 @@ export function useFlights() {
     try {
       await flightsService.registerDelay(command)
     } catch (err: any) {
-      throw new Error(err.response?.data?.errorMessage || 'Error al registrar retraso.')
+      throw new Error(getErrorMessage(err))
     }
   }
 
@@ -289,7 +290,7 @@ export function useFlights() {
     try {
       await flightsService.registerAdvance(command)
     } catch (err: any) {
-      throw new Error(err.response?.data?.errorMessage || 'Error al registrar adelanto.')
+      throw new Error(getErrorMessage(err))
     }
   }
 
@@ -297,7 +298,7 @@ export function useFlights() {
     try {
       await flightsService.cancel(command)
     } catch (err: any) {
-      throw new Error(err.response?.data?.errorMessage || 'Error al cancelar el vuelo.')
+      throw new Error(getErrorMessage(err))
     }
   }
 

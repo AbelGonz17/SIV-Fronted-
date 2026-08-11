@@ -187,6 +187,17 @@
   border-color: rgba(245, 158, 11, 0.4);
 }
 
+.btn-icon.success {
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.btn-icon.success:hover:not(:disabled) {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
 /* Modal Transitions & Auto-animations */
 @keyframes modalBackdropFadeIn {
   from { opacity: 0; }

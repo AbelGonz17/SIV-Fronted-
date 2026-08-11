@@ -67,4 +67,18 @@ apiClient.interceptors.response.use(
   }
 )
 
+export function getErrorMessage(error: any): string {
+  if (!error) return 'Ocurrió un error inesperado.'
+  if (error.response) {
+    const data = error.response.data
+    if (typeof data === 'string') {
+      return data
+    }
+    if (data && typeof data === 'object') {
+      return data.errorMessage || data.message || data.detail || error.message || 'Ocurrió un error en el servidor.'
+    }
+  }
+  return error.message || 'Error de red o conexión.'
+}
+
 export default apiClient
