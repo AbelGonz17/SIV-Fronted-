@@ -61,5 +61,16 @@ export const flightsService = {
 
   async cancel(data: CancelFlightRequestDTO): Promise<void> {
     await apiClient.post('/Vuelos/cancelar', data)
+  },
+
+  async uploadExcel(file: File): Promise<any> {
+    const formData = new FormData()
+    formData.append('file', file)
+    const response = await apiClient.post('/Vuelos/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+    return response.data?.value || response.data
   }
 }

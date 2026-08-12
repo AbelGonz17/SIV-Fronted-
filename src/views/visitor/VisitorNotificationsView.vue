@@ -1,8 +1,35 @@
 <script setup lang="ts">
 import { onMounted, computed, ref } from 'vue'
 import { useVisitor } from '../../composables/useVisitor'
+import { useFlights } from '../../composables/useFlights'
+import VisitorFlightModal from '../../components/VisitorFlightModal.vue'
 
 const { notifications, loadingNotifications, fetchNotifications, markAsRead } = useVisitor()
+const { fetchFlightDetails } = useFlights()
+
+const showModal = ref(false)
+const selectedFlightDetails = ref(null)
+const modalLoading = ref(false)
+const modalError = ref(null)
+
+const openDetails = async (flightId) => {
+  if (!flightId) return
+  modalLoading.value = true
+  modalError.value = null
+  showModal.value = true
+  try {
+    selectedFlightDetails.value = await fetchFlightDetails(flightId)
+  } catch (err) {
+    modalError.value = err?.message || 'Error al cargar detalles.'
+  } finally {
+    modalLoading.value = false
+  }
+}
+
+const closeDetails = () => {
+  showModal.value = false
+  selectedFlightDetails.value = null
+}
 
 const showRead = ref(true)
 
@@ -82,7 +109,7 @@ onMounted(fetchNotifications)
                 <path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/>
               </svg>
             </div>
-            <div class="notif-body">
+            <div class="notif-body" @click="openDetails(notif.vueloRelacionadoId)" style="cursor: pointer;" title="Ver detalles del vuelo">
               <p class="notif-message">{{ notif.mensaje || 'Actualización de vuelo' }}</p>
               <span class="notif-date">{{ formatDate(notif.fechaHoraGenearicion) }}</span>
             </div>
@@ -118,7 +145,7 @@ onMounted(fetchNotifications)
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
             </div>
-            <div class="notif-body">
+            <div class="notif-body" @click="openDetails(notif.vueloRelacionadoId)" style="cursor: pointer;" title="Ver detalles del vuelo">
               <p class="notif-message read-msg">{{ notif.mensaje || 'Actualización de vuelo' }}</p>
               <span class="notif-date">{{ formatDate(notif.fechaHoraGenearicion) }}</span>
             </div>
@@ -126,6 +153,14 @@ onMounted(fetchNotifications)
         </div>
       </section>
     </template>
+
+    <VisitorFlightModal
+      :show="showModal"
+      :flightDetails="selectedFlightDetails"
+      :loading="modalLoading"
+      :error="modalError"
+      @close="closeDetails"
+    />
   </div>
 </template>
 
