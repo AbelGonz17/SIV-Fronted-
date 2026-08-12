@@ -302,6 +302,14 @@ export function useFlights() {
     }
   }
 
+  const uploadExcel = async (file: File) => {
+    try {
+      return await flightsService.uploadExcel(file)
+    } catch (err: any) {
+      throw new Error(err.response?.data?.errorMessage || 'Error al cargar el archivo Excel.')
+    }
+  }
+
   return {
     flights,
     airlines,
@@ -323,6 +331,7 @@ export function useFlights() {
     registerDelay,
     registerAdvance,
     cancelFlight,
-    updateFlightFromPayload
+    updateFlightFromPayload,
+    uploadExcel
   }
 }

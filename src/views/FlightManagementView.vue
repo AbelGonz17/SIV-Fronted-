@@ -31,8 +31,44 @@ const {
   registerAdvance,
   cancelFlight,
   fetchFlightDetails,
-  updateFlightFromPayload
+  updateFlightFromPayload,
+  uploadExcel
 } = useFlights()
+
+// File Upload State
+const uploadFileInput = ref<HTMLInputElement | null>(null)
+const uploadLoading = ref(false)
+const showUploadReport = ref(false)
+const uploadReport = ref<any>(null)
+
+const triggerFileUpload = () => {
+  if (uploadFileInput.value) {
+    uploadFileInput.value.click()
+  }
+}
+
+const handleFileUpload = async (event: Event) => {
+  const target = event.target as HTMLInputElement
+  if (!target.files || target.files.length === 0) return
+  
+  const file = target.files[0]
+  uploadLoading.value = true
+  try {
+    const result = await uploadExcel(file)
+    uploadReport.value = result
+    if (result.totalErrores > 0) {
+      showUploadReport.value = true
+    } else {
+      showToast(`Carga masiva completada. Se programaron ${result.totalExitosos} vuelos exitosamente.`, 'success')
+    }
+    fetchFlights()
+  } catch (error: any) {
+    showToast(error.message || 'Error al cargar el archivo Excel', 'error')
+  } finally {
+    uploadLoading.value = false
+    if (uploadFileInput.value) uploadFileInput.value.value = ''
+  }
+}
 
 // Toast notifications state
 const toast = ref<{show: boolean, message: string, type: 'success' | 'error'}>({
@@ -441,17 +477,33 @@ const handleCancelFlight = async () => {
         <h1 class="page-title">Gestión Operativa de Vuelos</h1>
         <p class="page-subtitle">Panel de operaciones y reprogramación en tiempo real para Operadores.</p>
       </div>
-      <button 
-        v-if="authStore.user?.role === 'Operador'"
-        @click="openCreateModal" 
-        class="btn btn-primary btn-create"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" style="margin-right: 0.25rem;">
-          <line x1="12" y1="5" x2="12" y2="19" />
-          <line x1="5" y1="12" x2="19" y2="12" />
-        </svg>
-        Programar Vuelo
-      </button>
+      <div style="display: flex; gap: 10px;">
+        <input type="file" ref="uploadFileInput" accept=".xlsx" style="display: none;" @change="handleFileUpload" />
+        <button 
+          v-if="authStore.user?.role === 'Operador'"
+          @click="triggerFileUpload" 
+          class="btn btn-secondary btn-create"
+          :disabled="uploadLoading"
+        >
+          <svg v-if="!uploadLoading" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" style="margin-right: 0.25rem;">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          <span v-else class="spinner-small" style="margin-right: 0.25rem; display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite;"></span>
+          {{ uploadLoading ? 'Cargando...' : 'Cargar Excel' }}
+        </button>
+
+        <button 
+          v-if="authStore.user?.role === 'Operador'"
+          @click="openCreateModal" 
+          class="btn btn-primary btn-create"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" style="margin-right: 0.25rem;">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          Programar Vuelo
+        </button>
+      </div>
     </header>
 
     <!-- Role Warning if user is not Operador -->
@@ -986,6 +1038,45 @@ const handleCancelFlight = async () => {
           </div>
         </div>
       </div>
+    </Teleport>
+
+    <!-- Upload Report Modal -->
+    <Teleport to="body">
+      <Transition name="fade">
+        <div v-if="showUploadReport" class="modal-backdrop" @click="showUploadReport = false">
+          <div class="modal-container" @click.stop style="max-width: 600px;">
+            <button class="modal-close" @click="showUploadReport = false">&times;</button>
+            <h2 class="modal-title">Resultado de Carga Masiva</h2>
+            <p class="modal-subtitle">Se encontraron errores durante la importación.</p>
+
+            <div v-if="uploadReport" class="form-fields">
+              <div class="role-warning-banner glass-card" style="margin-bottom: 1rem; border-left-color: #ef4444; background: rgba(239, 68, 68, 0.05);">
+                <div class="warning-body">
+                  <h4>Resumen</h4>
+                  <p>
+                    Vuelos procesados: <strong>{{ uploadReport.totalProcesados }}</strong><br />
+                    Importados exitosamente: <strong>{{ uploadReport.totalExitosos }}</strong><br />
+                    Errores encontrados: <strong style="color: #f87171;">{{ uploadReport.totalErrores }}</strong>
+                  </p>
+                </div>
+              </div>
+              
+              <h4 style="color: white; margin-bottom: 0.5rem;">Detalles de Errores:</h4>
+              <div style="max-height: 300px; overflow-y: auto; background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px;">
+                <ul style="margin: 0; padding-left: 1.5rem; color: #f87171; font-size: 0.9rem;">
+                  <li v-for="(err, idx) in uploadReport.errores" :key="idx" style="margin-bottom: 0.5rem;">
+                    <strong>Fila {{ err.fila }}:</strong> {{ err.mensaje }}
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="modal-footer">
+              <button @click="showUploadReport = false" class="btn btn-secondary">Cerrar</button>
+            </div>
+          </div>
+        </div>
+      </Transition>
     </Teleport>
   </div>
 </template>
