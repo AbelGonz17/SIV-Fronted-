@@ -7,9 +7,20 @@ const router = createRouter({
   routes: [
     // ─── Rutas Públicas ──────────────────────────────────────────────────────
     {
+      path: '/',
+      name: 'landing',
+      component: () => import('../views/public/LandingFidsView.vue'),
+      meta: { requiresAuth: false }
+    },
+    {
       path: '/login',
       name: 'login',
       component: () => import('../views/LoginView.vue')
+    },
+    {
+      path: '/intranet/login',
+      name: 'intranet-login',
+      component: () => import('../views/intranet/IntranetLoginView.vue')
     },
     {
       path: '/registro',
@@ -53,7 +64,7 @@ const router = createRouter({
 
     // ─── Rutas Internas (layout con sidebar de gestión) ──────────────────────
     {
-      path: '/',
+      path: '/dashboard',
       name: 'home',
       component: HomeView,
       meta: { requiresAuth: true, role: 'internal' }
@@ -104,11 +115,14 @@ router.beforeEach((to) => {
 
   // Redirigir al login si no autenticado
   if (to.matched.some(r => r.meta.requiresAuth) && !authStore.isAuthenticated) {
+    if (to.meta.role === 'internal') {
+      return { name: 'intranet-login' }
+    }
     return { name: 'login' }
   }
 
-  // Si ya está autenticado y va a rutas de auth → redirigir según rol
-  if (['login', 'registro', 'olvide-contrasena', 'restablecer-contrasena'].includes(to.name) && authStore.isAuthenticated) {
+  // Si ya está autenticado y va a rutas de auth (o FIDS) → redirigir según rol
+  if (['login', 'intranet-login', 'registro', 'olvide-contrasena', 'restablecer-contrasena', 'landing'].includes(to.name) && authStore.isAuthenticated) {
     return isVisitor ? { name: 'visitor-flights' } : { name: 'home' }
   }
 
@@ -117,10 +131,10 @@ router.beforeEach((to) => {
     return { name: 'visitor-flights' }
   }
 
-  // Usuario interno intentando acceder a rutas de visitante → redirigir a home
-  if (authStore.isAuthenticated && !isVisitor && to.meta.role === 'Visitante') {
-    return { name: 'home' }
-  }
+  // Usuario interno intentando acceder a rutas de visitante → redirigir a visitor (ahora permitido para ver la red pública)
+  // if (authStore.isAuthenticated && !isVisitor && to.meta.role === 'Visitante') {
+  //   return { name: 'home' }
+  // }
 })
 
 export default router

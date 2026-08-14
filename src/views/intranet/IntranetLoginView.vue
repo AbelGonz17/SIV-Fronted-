@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
+import { useAuthStore } from '../../stores/auth'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -16,38 +16,35 @@ const handleLogin = async () => {
   
   const success = await authStore.login(email.value, password.value, rememberMe.value)
   if (success) {
-    router.push('/visitante')
+    const isVisitor = authStore.user?.role === 'Visitante'
+    if (isVisitor) {
+      // Simulate invalid credentials for visitors to hide intranet existence/roles
+      authStore.error = 'Credenciales incorrectas'
+      await authStore.logout()
+      return
+    }
+    // Employee logic: redirect to intranet dashboard
+    router.push('/dashboard')
   }
 }
 </script>
 
 <template>
-  <div class="login-page">
-    <!-- Animated background particles -->
-    <div class="bg-stars">
-      <div v-for="n in 20" :key="n" class="star" :style="{
-        left: Math.random() * 100 + '%',
-        top: Math.random() * 100 + '%',
-        animationDelay: Math.random() * 8 + 's',
-        animationDuration: 4 + Math.random() * 6 + 's'
-      }"></div>
-    </div>
-
-    <!-- Login Container -->
-    <div class="login-container glass-card animate-fade-in">
-      <div class="login-header">
-        <div class="brand-logo-large">
+  <div class="intranet-login-page">
+    <div class="intranet-login-container animate-fade-in">
+      <div class="intranet-login-header">
+        <div class="intranet-brand-logo">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-1.1.1-1.3.6l-.3.7c-.2.5 0 1.1.4 1.4L9 12l-3 3-2.5-.5c-.4-.1-.8.1-1 .4l-.3.5c-.2.4-.1.9.3 1.1L6 18l1.5 3.5c.2.4.7.5 1.1.3l.5-.3c.3-.2.5-.6.4-1L9 18l3-3 3.1 5.4c.3.5.9.6 1.4.4l.7-.3c.5-.2.7-.8.6-1.3z" />
           </svg>
         </div>
-        <h1 class="login-title">Bienvenido a SkyFlow</h1>
-        <p class="login-subtitle">Ingresa tus credenciales para acceder a la terminal de vuelos.</p>
+        <h1 class="intranet-login-title">SkyFlow Intranet</h1>
+        <p class="intranet-login-subtitle">Acceso exclusivo para personal administrativo y operativo.</p>
       </div>
 
       <!-- Error Alerts -->
       <transition name="alert-slide">
-        <div v-if="authStore.error" class="login-alert-error">
+        <div v-if="authStore.error" class="intranet-alert-error">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="alert-icon">
             <circle cx="12" cy="12" r="10" />
             <line x1="12" y1="8" x2="12" y2="12" />
@@ -58,20 +55,20 @@ const handleLogin = async () => {
       </transition>
 
       <!-- Form -->
-      <form @submit.prevent="handleLogin" class="login-form">
+      <form @submit.prevent="handleLogin" class="intranet-login-form">
         <!-- Email Input -->
         <div class="form-group">
-          <label class="form-label" for="login-email">Correo Electrónico</label>
+          <label class="form-label" for="intranet-email">Correo Institucional</label>
           <div class="input-wrapper">
             <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
               <polyline points="22,6 12,13 2,6" />
             </svg>
             <input 
-              id="login-email" 
+              id="intranet-email" 
               v-model="email"
               type="email" 
-              class="form-input with-icon" 
+              class="form-input with-icon corporate-input" 
               placeholder="usuario@skyflow.com"
               required
               :disabled="authStore.loading"
@@ -81,17 +78,17 @@ const handleLogin = async () => {
 
         <!-- Password Input -->
         <div class="form-group">
-          <label class="form-label" for="login-password">Contraseña</label>
+          <label class="form-label" for="intranet-password">Contraseña</label>
           <div class="input-wrapper">
             <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
               <path d="M7 11V7a5 5 0 0 1 10 0v4" />
             </svg>
             <input 
-              id="login-password" 
+              id="intranet-password" 
               v-model="password"
               :type="showPassword ? 'text' : 'password'" 
-              class="form-input with-icon password-input" 
+              class="form-input with-icon corporate-input password-input" 
               placeholder="••••••••"
               required
               :disabled="authStore.loading"
@@ -101,7 +98,6 @@ const handleLogin = async () => {
               class="password-toggle-btn"
               @click="showPassword = !showPassword"
               tabindex="-1"
-              style="display: flex; align-items: center; justify-content: center; background: none; border: none; padding: 0.5rem;"
             >
               <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
@@ -115,23 +111,12 @@ const handleLogin = async () => {
           </div>
         </div>
 
-        <!-- Form Actions Row (Remember Me & Forgot Password) -->
-        <div class="form-actions-row" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-          <!-- Remember Me Checkbox -->
-          <div class="remember-me-container" style="display: flex; align-items: center;">
-            <input 
-              type="checkbox" 
-              id="remember-me" 
-              v-model="rememberMe"
-              style="margin-right: 0.5rem; accent-color: #3b82f6; width: auto; height: auto; cursor: pointer;"
-            >
-            <label for="remember-me" style="color: #cbd5e1; font-size: 0.85rem; cursor: pointer; display: inline-block; margin: 0;">
-              Mantener sesión iniciada
-            </label>
+        <div class="form-actions-row">
+          <div class="remember-me-container">
+            <input type="checkbox" id="intranet-remember-me" v-model="rememberMe">
+            <label for="intranet-remember-me">Mantener sesión</label>
           </div>
-          
-          <!-- Forgot Password link -->
-          <router-link to="/olvide-contrasena" style="color: #94a3b8; font-size: 0.8rem; text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='#60a5fa'" onmouseout="this.style.color='#94a3b8'">
+          <router-link to="/olvide-contrasena" class="forgot-link">
             ¿Olvidaste tu contraseña?
           </router-link>
         </div>
@@ -139,19 +124,13 @@ const handleLogin = async () => {
         <!-- Submit Button -->
         <button 
           type="submit" 
-          class="btn btn-primary btn-submit-login" 
+          class="btn btn-primary btn-submit-intranet" 
           :disabled="authStore.loading || !email || !password"
-          style="display: flex; gap: 0.5rem; align-items: center; justify-content: center;"
         >
           <span v-if="authStore.loading" class="login-spinner"></span>
-          <span>{{ authStore.loading ? 'Iniciando...' : 'Iniciar Sesión' }}</span>
+          <span>{{ authStore.loading ? 'Autenticando...' : 'Acceder al Sistema' }}</span>
         </button>
       </form>
-
-      <!-- Register link -->
-      <div class="register-link-section">
-        <p>¿No tienes cuenta? <router-link to="/registro" class="register-link">Regístrate aquí</router-link></p>
-      </div>
 
       <div class="back-link-section">
         <router-link to="/" class="back-link">
@@ -167,47 +146,31 @@ const handleLogin = async () => {
 </template>
 
 <style scoped>
-.login-page {
+.intranet-login-page {
   width: 100vw;
   min-height: 100vh;
-  margin-top: -70px; /* Offset navigation bar height */
+  margin-top: -70px;
   display: flex;
   align-items: center;
   justify-content: center;
+  background-color: #f1f5f9; /* Corporate light gray */
   position: relative;
   overflow: hidden;
   padding: 1.5rem;
 }
 
-/* Background star effect */
-.bg-stars {
+/* Background subtle pattern */
+.intranet-login-page::before {
+  content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+  background-size: 24px 24px;
+  opacity: 0.5;
   pointer-events: none;
-  z-index: 1;
 }
 
-.star {
-  position: absolute;
-  width: 2px;
-  height: 2px;
-  background: white;
-  border-radius: 50%;
-  opacity: 0.1;
-  animation: starPulse infinite ease-in-out;
-}
-
-@keyframes starPulse {
-  0% { transform: scale(0.8); opacity: 0.1; }
-  50% { transform: scale(1.5); opacity: 0.6; box-shadow: 0 0 4px white; }
-  100% { transform: scale(0.8); opacity: 0.1; }
-}
-
-/* Container */
-.login-container {
+.intranet-login-container {
   width: 100%;
   max-width: 440px;
   padding: 2.5rem;
@@ -215,68 +178,61 @@ const handleLogin = async () => {
   display: flex;
   flex-direction: column;
   gap: 1.75rem;
-  border-color: rgba(255, 255, 255, 0.12);
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e8f0;
 }
 
-.login-header {
+.intranet-login-header {
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-.brand-logo-large {
-  width: 52px;
-  height: 52px;
-  background: linear-gradient(135deg, var(--color-primary) 0%, #1e40af 100%);
+.intranet-brand-logo {
+  width: 56px;
+  height: 56px;
+  background: #1e3a8a; /* Corporate blue */
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   margin-bottom: 1.25rem;
-  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
-  transform: rotate(45deg);
-  animation: logoFloat 4s ease-in-out infinite;
+  box-shadow: 0 4px 12px rgba(30, 58, 138, 0.3);
 }
 
-.brand-logo-large svg {
-  width: 28px;
-  height: 28px;
-  transform: rotate(-45deg);
+.intranet-brand-logo svg {
+  width: 32px;
+  height: 32px;
 }
 
-@keyframes logoFloat {
-  0% { transform: rotate(45deg) translateY(0px); }
-  50% { transform: rotate(45deg) translateY(-4px); }
-  100% { transform: rotate(45deg) translateY(0px); }
-}
-
-.login-title {
+.intranet-login-title {
   font-size: 1.75rem;
   font-weight: 700;
-  color: white;
+  color: #0f172a;
   letter-spacing: -0.02em;
 }
 
-.login-subtitle {
+.intranet-login-subtitle {
   font-size: 0.85rem;
-  color: var(--color-text-secondary);
+  color: #64748b;
   margin-top: 0.35rem;
   line-height: 1.4;
 }
 
-/* Alert styling */
-.login-alert-error {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.25);
+.intranet-alert-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
   border-radius: 8px;
   padding: 0.75rem 1rem;
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  color: #fca5a5;
-  font-size: 0.8rem;
+  color: #ef4444;
+  font-size: 0.85rem;
 }
 
 .alert-icon {
@@ -285,24 +241,15 @@ const handleLogin = async () => {
   flex-shrink: 0;
 }
 
-.alert-text {
-  line-height: 1.4;
-}
-
-.alert-slide-enter-active, .alert-slide-leave-active {
-  transition: all 0.3s ease;
-}
-
-.alert-slide-enter-from, .alert-slide-leave-to {
-  opacity: 0;
-  transform: translateY(-10px);
-}
-
-/* Form inputs & icons */
-.login-form {
+.intranet-login-form {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+}
+
+.form-label {
+  color: #334155;
+  font-weight: 600;
 }
 
 .input-wrapper {
@@ -316,11 +263,25 @@ const handleLogin = async () => {
   left: 1rem;
   width: 18px;
   height: 18px;
-  color: var(--color-text-muted);
+  color: #94a3b8;
   pointer-events: none;
 }
 
-.form-input.with-icon {
+.corporate-input {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+}
+.corporate-input:focus {
+  background: white;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+.corporate-input::placeholder {
+  color: #94a3b8;
+}
+
+.corporate-input.with-icon {
   padding-left: 2.75rem;
   width: 100%;
 }
@@ -332,29 +293,79 @@ const handleLogin = async () => {
 .password-toggle-btn {
   position: absolute;
   right: 0.75rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 0.25rem 0.5rem;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
   border-radius: 4px;
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: var(--color-text-secondary);
+  color: #64748b;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem;
   transition: all 0.2s;
 }
-
 .password-toggle-btn:hover {
-  color: white;
-  background: rgba(255, 255, 255, 0.12);
+  color: #0f172a;
+  background: #e2e8f0;
 }
 
-.btn-submit-login {
+.form-actions-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.remember-me-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.remember-me-container input {
+  accent-color: #1e3a8a;
+  cursor: pointer;
+}
+.remember-me-container label {
+  color: #475569;
+  font-size: 0.85rem;
+  cursor: pointer;
+  margin: 0;
+}
+
+.forgot-link {
+  color: #3b82f6;
+  font-size: 0.85rem;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+.forgot-link:hover {
+  color: #1e40af;
+  text-decoration: underline;
+}
+
+.btn-submit-intranet {
   margin-top: 0.5rem;
   height: 46px;
   font-size: 0.95rem;
   display: flex;
-  justify-content: center;
+  gap: 0.5rem;
   align-items: center;
+  justify-content: center;
+  background: #1e3a8a;
+  color: white;
+  border: none;
+  font-weight: 600;
+  transition: background 0.2s;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.btn-submit-intranet:hover:not(:disabled) {
+  background: #1e40af;
+}
+.btn-submit-intranet:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 .login-spinner {
@@ -365,80 +376,26 @@ const handleLogin = async () => {
   border-top-color: white;
   animation: spin 0.8s linear infinite;
 }
-
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
 
-/* Hint Box */
-.credentials-hint {
-  border: 1px dashed rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.01);
-  border-radius: 8px;
-  padding: 0.85rem 1rem;
-  font-size: 0.8rem;
-}
-
-.hint-header {
-  margin-bottom: 0.4rem;
-}
-
-.hint-tag {
-  background: rgba(59, 130, 246, 0.15);
-  color: #60a5fa;
-  padding: 0.15rem 0.4rem;
-  border-radius: 4px;
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.hint-body {
-  color: var(--color-text-secondary);
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-}
-
-.hint-body code {
-  color: white;
-  background: rgba(0, 0, 0, 0.3);
-  padding: 0.1rem 0.3rem;
-  border-radius: 4px;
-  font-family: monospace;
-}
-/* Register link */
-.register-link-section {
-  text-align: center;
-  font-size: 0.85rem;
-  color: var(--color-text-secondary);
-  padding-top: 0.5rem;
-  border-top: 1px solid var(--color-border);
-}
-.register-link {
-  color: var(--color-primary);
-  font-weight: 600;
-  text-decoration: none;
-  transition: color 0.2s;
-}
-.register-link:hover { color: white; }
-
-/* Back link */
 .back-link-section {
   text-align: center;
-  padding-top: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
 }
 .back-link {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  color: var(--color-text-muted);
+  color: #64748b;
   font-size: 0.85rem;
   font-weight: 500;
   text-decoration: none;
   transition: color 0.2s;
 }
 .back-link:hover {
-  color: white;
+  color: #0f172a;
 }
 </style>
