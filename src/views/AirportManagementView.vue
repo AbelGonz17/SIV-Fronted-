@@ -17,8 +17,7 @@ const {
   fetchAirports,
   createAirport,
   updateAirport,
-  deleteAirport,
-  activateAirport
+  deleteAirport
 } = useAirports()
 
 // Buscador local
@@ -39,7 +38,7 @@ const showToast = (message: string, type: 'success' | 'error' = 'success') => {
 }
 
 // Modal control
-const activeModal = ref<'create' | 'edit' | 'delete' | 'activate' | null>(null) // 'create' | 'edit' | 'delete' | 'activate'
+const activeModal = ref<'create' | 'edit' | 'delete' | null>(null) // 'create' | 'edit' | 'delete'
 const selectedAirport = ref<AirportDTO | null>(null)
 const loadingOperation = ref(false)
 
@@ -47,6 +46,7 @@ const loadingOperation = ref(false)
 const form = ref({
   codigo: '',
   nombre: '',
+  ciudad: '',
   pais: ''
 })
 
@@ -92,6 +92,7 @@ const openCreateModal = () => {
   form.value = {
     codigo: '',
     nombre: '',
+    ciudad: '',
     pais: ''
   }
   activeModal.value = 'create'
@@ -100,8 +101,9 @@ const openCreateModal = () => {
 const openEditModal = (airport: AirportDTO) => {
   selectedAirport.value = airport
   form.value = {
-    codigo: airport.codigo || airport.codigoIATA || '',
     nombre: airport.nombre,
+    codigo: airport.codigo || '',
+    ciudad: airport.ciudad || '',
     pais: airport.pais || ''
   }
   activeModal.value = 'edit'
@@ -112,11 +114,6 @@ const openDeleteModal = (airport: AirportDTO) => {
   activeModal.value = 'delete'
 }
 
-const openActivateModal = (airport: AirportDTO) => {
-  selectedAirport.value = airport
-  activeModal.value = 'activate'
-}
-
 const closeModal = () => {
   activeModal.value = null
   selectedAirport.value = null
@@ -124,7 +121,7 @@ const closeModal = () => {
 
 // Envíos de Formularios (Acciones API)
 const handleCreateAirport = async () => {
-  if (!form.value.codigo || !form.value.nombre || !form.value.pais) {
+  if (!form.value.codigo || !form.value.nombre || !form.value.ciudad || !form.value.pais) {
     showToast('Por favor rellene todos los campos obligatorios.', 'error')
     return
   }
@@ -133,9 +130,8 @@ const handleCreateAirport = async () => {
   try {
     const command = {
       codigo: form.value.codigo.toUpperCase().trim(),
-      codigoIATA: form.value.codigo.toUpperCase().trim(),
       nombre: form.value.nombre.trim(),
-      ciudad: form.value.pais.trim(),
+      ciudad: form.value.ciudad.trim(),
       pais: form.value.pais.trim()
     }
 
@@ -143,7 +139,7 @@ const handleCreateAirport = async () => {
     showToast(`El aeropuerto "${command.nombre}" fue registrado exitosamente.`)
     closeModal()
     await fetchAirports()
-  } catch (err: any) {
+  } catch (err) {
     showToast(err.message || 'Error al registrar el aeropuerto.', 'error')
   } finally {
     loadingOperation.value = false
@@ -151,8 +147,7 @@ const handleCreateAirport = async () => {
 }
 
 const handleUpdateAirport = async () => {
-  if (!selectedAirport.value) return
-  if (!form.value.codigo || !form.value.nombre || !form.value.pais) {
+  if (!form.value.codigo || !form.value.nombre || !form.value.ciudad || !form.value.pais) {
     showToast('Por favor rellene todos los campos obligatorios.', 'error')
     return
   }
@@ -161,9 +156,8 @@ const handleUpdateAirport = async () => {
   try {
     const command = {
       codigo: form.value.codigo.toUpperCase().trim(),
-      codigoIATA: form.value.codigo.toUpperCase().trim(),
       nombre: form.value.nombre.trim(),
-      ciudad: form.value.pais.trim(),
+      ciudad: form.value.ciudad.trim(),
       pais: form.value.pais.trim()
     }
 
@@ -171,7 +165,7 @@ const handleUpdateAirport = async () => {
     showToast(`Datos del aeropuerto actualizados correctamente.`)
     closeModal()
     await fetchAirports()
-  } catch (err: any) {
+  } catch (err) {
     showToast(err.message || 'Error al actualizar el aeropuerto.', 'error')
   } finally {
     loadingOperation.value = false
@@ -179,30 +173,14 @@ const handleUpdateAirport = async () => {
 }
 
 const handleDeleteAirport = async () => {
-  if (!selectedAirport.value) return
   loadingOperation.value = true
   try {
     await deleteAirport(selectedAirport.value.id)
     showToast(`Aeropuerto eliminado exitosamente del catálogo.`)
     closeModal()
     await fetchAirports()
-  } catch (err: any) {
+  } catch (err) {
     showToast(err.message || 'Error al eliminar el aeropuerto.', 'error')
-  } finally {
-    loadingOperation.value = false
-  }
-}
-
-const handleActivateAirport = async () => {
-  if (!selectedAirport.value) return
-  loadingOperation.value = true
-  try {
-    await activateAirport(selectedAirport.value.id)
-    showToast(`Aeropuerto reactivado exitosamente.`)
-    closeModal()
-    await fetchAirports()
-  } catch (err: any) {
-    showToast(err.message || 'Error al activar el aeropuerto.', 'error')
   } finally {
     loadingOperation.value = false
   }
@@ -337,11 +315,8 @@ const handleActivateAirport = async () => {
                   <button @click="openEditModal(airport)" class="btn-icon primary" title="Editar aeropuerto">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                   </button>
-                  <button v-if="airport.activo" @click="openDeleteModal(airport)" class="btn-icon danger" title="Desactivar aeropuerto">
+                  <button @click="openDeleteModal(airport)" class="btn-icon danger" title="Eliminar aeropuerto">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
-                  </button>
-                  <button v-else @click="openActivateModal(airport)" class="btn-icon success" title="Activar aeropuerto">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
                   </button>
                 </div>
               </td>
@@ -388,6 +363,11 @@ const handleActivateAirport = async () => {
             </div>
 
             <div class="form-group">
+              <label class="form-label" for="ap-city">Ciudad</label>
+              <input id="ap-city" v-model="form.ciudad" type="text" class="form-input" placeholder="Ej. Santo Domingo" required />
+            </div>
+
+            <div class="form-group">
               <label class="form-label" for="ap-country">País</label>
               <input id="ap-country" v-model="form.pais" type="text" class="form-input" placeholder="Ej. República Dominicana" required />
             </div>
@@ -421,6 +401,11 @@ const handleActivateAirport = async () => {
             </div>
 
             <div class="form-group">
+              <label class="form-label" for="eap-city">Ciudad</label>
+              <input id="eap-city" v-model="form.ciudad" type="text" class="form-input" placeholder="Ej. Santo Domingo" required />
+            </div>
+
+            <div class="form-group">
               <label class="form-label" for="eap-country">País</label>
               <input id="eap-country" v-model="form.pais" type="text" class="form-input" placeholder="Ej. República Dominicana" required />
             </div>
@@ -439,37 +424,17 @@ const handleActivateAirport = async () => {
       <div v-if="activeModal === 'delete'" class="modal-backdrop" @click="closeModal">
         <div class="modal-container glass-card" @click.stop>
           <button class="modal-close" @click="closeModal">&times;</button>
-          <h2 class="modal-title text-danger">Desactivar Aeropuerto</h2>
-          <p class="modal-subtitle">¿Está seguro de que desea desactivar el aeropuerto <strong>{{ selectedAirport?.nombre }}</strong>?</p>
+          <h2 class="modal-title text-danger">Eliminar Aeropuerto</h2>
+          <p class="modal-subtitle">¿Está seguro de que desea eliminar el aeropuerto <strong>{{ selectedAirport?.nombre }}</strong>?</p>
           
           <div class="alert-box-warning" style="margin-top: 1rem; padding: 0.75rem 1rem; border-radius: 6px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #f87171; font-size: 0.85rem; line-height: 1.4;">
-            Esta acción desactivará el aeropuerto y podría causar advertencias en los vuelos programados que usen este aeropuerto como origen o destino.
+            Esta acción es irreversible y podría causar errores en los vuelos programados que usen este aeropuerto como origen o destino.
           </div>
 
           <div class="modal-footer" style="margin-top: 1.5rem;">
             <button @click="closeModal" class="btn btn-secondary" :disabled="loadingOperation">Cancelar</button>
             <button @click="handleDeleteAirport" class="btn btn-danger" :disabled="loadingOperation">
-              {{ loadingOperation ? 'Desactivando...' : 'Sí, Desactivar' }}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- 4. Activar Aeropuerto -->
-      <div v-if="activeModal === 'activate'" class="modal-backdrop" @click="closeModal">
-        <div class="modal-container glass-card" @click.stop>
-          <button class="modal-close" @click="closeModal">&times;</button>
-          <h2 class="modal-title text-success" style="color: #10b981;">Activar Aeropuerto</h2>
-          <p class="modal-subtitle">¿Está seguro de que desea activar el aeropuerto <strong>{{ selectedAirport?.nombre }}</strong>?</p>
-          
-          <div class="alert-box-warning" style="margin-top: 1rem; padding: 0.75rem 1rem; border-radius: 6px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); color: #34d399; font-size: 0.85rem; line-height: 1.4;">
-            Esta acción reactivará el aeropuerto en el sistema y permitirá programar nuevos vuelos que lo utilicen.
-          </div>
-
-          <div class="modal-footer" style="margin-top: 1.5rem;">
-            <button @click="closeModal" class="btn btn-secondary" :disabled="loadingOperation">Cancelar</button>
-            <button @click="handleActivateAirport" class="btn btn-primary" style="background: #10b981; border-color: #10b981; color: white;" :disabled="loadingOperation">
-              {{ loadingOperation ? 'Activando...' : 'Sí, Activar' }}
+              {{ loadingOperation ? 'Eliminando...' : 'Sí, Eliminar' }}
             </button>
           </div>
         </div>
