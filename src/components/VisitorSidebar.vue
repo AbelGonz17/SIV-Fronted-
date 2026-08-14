@@ -772,4 +772,61 @@ const initials = computed(() => {
   flex-direction: column;
   gap: 0.75rem;
 }
+
+@media (max-width: 900px) {
+  .visitor-sidebar, .visitor-sidebar.collapsed {
+    top: auto;
+    bottom: 0;
+    width: 100%;
+    height: 70px;
+    flex-direction: row;
+    padding: 0;
+    border-right: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(8, 12, 22, 1);
+    z-index: 1000;
+  }
+  
+  .visitor-brand, .visitor-greeting, .visitor-footer, .nav-section-label, .sidebar-toast {
+    display: none !important;
+  }
+  
+  .visitor-nav {
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: center;
+    width: 100%;
+    gap: 0;
+  }
+  
+  .visitor-link, .visitor-sidebar.collapsed .visitor-link {
+    flex-direction: column;
+    padding: 0.5rem;
+    gap: 0.3rem;
+    border: none !important;
+    flex: 1;
+    justify-content: center;
+    background: transparent !important;
+  }
+  
+  .visitor-link span, .visitor-sidebar.collapsed .visitor-link span {
+    display: block !important;
+    font-size: 0.65rem;
+    font-weight: 500;
+  }
+  
+  .visitor-link.active {
+    color: var(--color-primary);
+  }
+  
+  .visitor-link.active .link-icon {
+    transform: scale(1.1);
+  }
+  
+  .notif-badge {
+    top: -4px; right: -8px;
+    width: 14px; height: 14px;
+    font-size: 0.55rem;
+  }
+}
 </style>

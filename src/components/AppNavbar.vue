@@ -14,7 +14,7 @@ const { activeTheme, themeKeys, themes, setTheme } = useTheme()
 
 const handleLogout = async () => {
   await authStore.logout()
-  router.push('/login')
+  router.push('/intranet/login')
 }
 
 const showPasswordModal = ref(false)
@@ -56,7 +56,7 @@ const userInitials = computed(() => {
 
     <!-- Navigation Menu Links -->
     <nav class="sidebar-menu">
-      <RouterLink to="/" class="menu-link" active-class="active">
+      <RouterLink to="/dashboard" class="menu-link" active-class="active">
         <svg class="menu-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="3" width="7" height="9" />
           <rect x="14" y="3" width="7" height="5" />

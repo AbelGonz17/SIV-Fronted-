@@ -76,10 +76,11 @@ onUnmounted(() => {
 }
 
 @media (max-width: 900px) {
-  .visitor-main {
+  .visitor-main, .visitor-layout.sidebar-collapsed .visitor-main {
     margin-left: 0;
     width: 100%;
     padding: 1rem;
+    padding-bottom: 80px; /* Space for bottom nav */
   }
 }
 </style>
