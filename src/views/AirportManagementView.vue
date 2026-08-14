@@ -46,6 +46,7 @@ const loadingOperation = ref(false)
 const form = ref({
   codigo: '',
   nombre: '',
+  ciudad: '',
   pais: ''
 })
 
@@ -91,6 +92,7 @@ const openCreateModal = () => {
   form.value = {
     codigo: '',
     nombre: '',
+    ciudad: '',
     pais: ''
   }
   activeModal.value = 'create'
@@ -100,7 +102,7 @@ const openEditModal = (airport: AirportDTO) => {
   selectedAirport.value = airport
   form.value = {
     nombre: airport.nombre,
-    codigoIATA: airport.codigoIATA || '',
+    codigo: airport.codigo || '',
     ciudad: airport.ciudad || '',
     pais: airport.pais || ''
   }
@@ -119,7 +121,7 @@ const closeModal = () => {
 
 // Envíos de Formularios (Acciones API)
 const handleCreateAirport = async () => {
-  if (!form.value.codigo || !form.value.nombre || !form.value.pais) {
+  if (!form.value.codigo || !form.value.nombre || !form.value.ciudad || !form.value.pais) {
     showToast('Por favor rellene todos los campos obligatorios.', 'error')
     return
   }
@@ -129,6 +131,7 @@ const handleCreateAirport = async () => {
     const command = {
       codigo: form.value.codigo.toUpperCase().trim(),
       nombre: form.value.nombre.trim(),
+      ciudad: form.value.ciudad.trim(),
       pais: form.value.pais.trim()
     }
 
@@ -144,7 +147,7 @@ const handleCreateAirport = async () => {
 }
 
 const handleUpdateAirport = async () => {
-  if (!form.value.codigo || !form.value.nombre || !form.value.pais) {
+  if (!form.value.codigo || !form.value.nombre || !form.value.ciudad || !form.value.pais) {
     showToast('Por favor rellene todos los campos obligatorios.', 'error')
     return
   }
@@ -154,6 +157,7 @@ const handleUpdateAirport = async () => {
     const command = {
       codigo: form.value.codigo.toUpperCase().trim(),
       nombre: form.value.nombre.trim(),
+      ciudad: form.value.ciudad.trim(),
       pais: form.value.pais.trim()
     }
 
@@ -359,6 +363,11 @@ const handleDeleteAirport = async () => {
             </div>
 
             <div class="form-group">
+              <label class="form-label" for="ap-city">Ciudad</label>
+              <input id="ap-city" v-model="form.ciudad" type="text" class="form-input" placeholder="Ej. Santo Domingo" required />
+            </div>
+
+            <div class="form-group">
               <label class="form-label" for="ap-country">País</label>
               <input id="ap-country" v-model="form.pais" type="text" class="form-input" placeholder="Ej. República Dominicana" required />
             </div>
@@ -389,6 +398,11 @@ const handleDeleteAirport = async () => {
             <div class="form-group">
               <label class="form-label" for="eap-name">Nombre de Aeropuerto</label>
               <input id="eap-name" v-model="form.nombre" type="text" class="form-input" placeholder="Ej. Las Américas International Airport" required />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="eap-city">Ciudad</label>
+              <input id="eap-city" v-model="form.ciudad" type="text" class="form-input" placeholder="Ej. Santo Domingo" required />
             </div>
 
             <div class="form-group">

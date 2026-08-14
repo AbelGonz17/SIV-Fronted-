@@ -1,7 +1,7 @@
 export interface AirportDTO {
   id: string;
   nombre: string;
-  codigoIATA?: string;
+  codigo?: string;
   ciudad?: string;
   pais?: string;
   activo?: boolean;
@@ -9,14 +9,14 @@ export interface AirportDTO {
 
 export interface CreateAirportRequestDTO {
   nombre: string;
-  codigoIATA: string;
-  ciudad: string;
+  codigo: string;
+  ciudad?: string;
   pais: string;
 }
 
 export interface UpdateAirportRequestDTO {
   nombre: string;
-  codigoIATA: string;
-  ciudad: string;
+  codigo: string;
+  ciudad?: string;
   pais: string;
 }
