@@ -3,9 +3,11 @@ import { onMounted, computed, ref } from 'vue'
 import { useVisitor } from '../../composables/useVisitor'
 import { useFlights } from '../../composables/useFlights'
 import VisitorFlightModal from '../../components/VisitorFlightModal.vue'
+import { useLanguage } from '../../composables/useLanguage'
 
 const { notifications, loadingNotifications, fetchNotifications, markAsRead } = useVisitor()
 const { fetchFlightDetails } = useFlights()
+const { t, currentLanguage } = useLanguage()
 
 const showModal = ref(false)
 const selectedFlightDetails = ref(null)
@@ -34,10 +36,33 @@ const closeDetails = () => {
 const unread = computed(() => notifications.value.filter(n => !n.fueLeida))
 const read = computed(() => notifications.value.filter(n => n.fueLeida))
 
+const translateMessage = (msg) => {
+  if (!msg) return msg
+  if (currentLanguage.value === 'es') return msg
+  
+  let translated = msg
+    .replace(/Atención:\s*El vuelo/gi, 'Attention: Flight')
+    .replace(/ha cambiado su estado a/gi, 'has changed its status to')
+    .replace(/Motivo:/gi, 'Reason:')
+    
+  translated = translated
+    .replace(/Embarcando/g, t('status.boarding'))
+    .replace(/En Vuelo/g, t('status.inflight'))
+    .replace(/Aterrizado/g, t('status.landed'))
+    .replace(/Completado/g, t('status.completed'))
+    .replace(/En Hora/g, t('status.ontime'))
+    .replace(/Demorado/g, t('status.delayed'))
+    .replace(/Cancelado/g, t('status.cancelled'))
+    .replace(/Programado/g, t('status.scheduled'))
+    
+  return translated
+}
+
 const formatDate = (dateStr) => {
   if (!dateStr) return ''
   try {
-    return new Date(dateStr).toLocaleString('es-DO', {
+    const locale = currentLanguage.value === 'es' ? 'es-DO' : 'en-US'
+    return new Date(dateStr).toLocaleString(locale, {
       day: '2-digit', month: 'short', year: 'numeric',
       hour: '2-digit', minute: '2-digit', hour12: true
     })
@@ -70,18 +95,18 @@ onMounted(fetchNotifications)
     <!-- Header -->
     <header class="notif-header">
       <div>
-        <h1 class="page-title">Notificaciones</h1>
-        <p class="page-sub">Actualizaciones sobre los vuelos que estás siguiendo.</p>
+        <h1 class="page-title">{{ t('notifications.title') }}</h1>
+        <p class="page-sub">{{ t('notifications.subtitle') }}</p>
       </div>
       <button v-if="unread.length > 0" @click="markAllRead" class="btn btn-secondary mark-all-btn">
-        Marcar todas como leídas
+        {{ t('notifications.markAllRead') }}
       </button>
     </header>
 
     <!-- Loading -->
     <div v-if="loadingNotifications" class="loading-state">
       <div class="pulse-loader"></div>
-      <p>Cargando notificaciones...</p>
+      <p>{{ t('notifications.loading') }}</p>
     </div>
 
     <template v-else>
@@ -90,14 +115,14 @@ onMounted(fetchNotifications)
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="52" height="52" style="color:var(--color-text-muted)">
           <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
         </svg>
-        <p style="color:var(--color-text-muted); font-size:1rem; margin-top:0.5rem">No tienes notificaciones aún.</p>
-        <p style="color:var(--color-text-muted); font-size:0.85rem">Sigue un vuelo desde el Panel para recibir actualizaciones.</p>
+        <p style="color:var(--color-text-muted); font-size:1rem; margin-top:0.5rem">{{ t('notifications.empty.title') }}</p>
+        <p style="color:var(--color-text-muted); font-size:0.85rem">{{ t('notifications.empty.desc') }}</p>
       </div>
 
       <!-- No leídas -->
       <section v-if="unread.length > 0" class="notif-section">
         <div class="section-header">
-          <span class="section-title">Sin leer</span>
+          <span class="section-title">{{ t('notifications.unread') }}</span>
           <span class="unread-count-badge">{{ unread.length }}</span>
         </div>
         <div class="notif-list">
@@ -107,11 +132,11 @@ onMounted(fetchNotifications)
                 <path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/>
               </svg>
             </div>
-            <div class="notif-body" @click="openDetails(notif.vueloRelacionadoId)" style="cursor: pointer;" title="Ver detalles del vuelo">
-              <p class="notif-message">{{ notif.mensaje || 'Actualización de vuelo' }}</p>
+            <div class="notif-body" @click="openDetails(notif.vueloRelacionadoId)" style="cursor: pointer;" :title="t('notifications.card.title')">
+              <p class="notif-message">{{ translateMessage(notif.mensaje) || t('flights.card.flight') }}</p>
               <span class="notif-date">{{ formatDate(notif.fechaHoraGenearicion) }}</span>
             </div>
-            <button @click="handleMarkRead(notif)" class="mark-read-btn" title="Marcar como leída">
+            <button @click="handleMarkRead(notif)" class="mark-read-btn" :title="t('notifications.card.markRead')">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
@@ -123,7 +148,7 @@ onMounted(fetchNotifications)
       <!-- Leídas -->
       <section v-if="read.length > 0" class="notif-section">
         <div class="section-header" style="margin-top: 2rem">
-          <span class="section-title" style="color:var(--color-text-muted)">Anteriores</span>
+          <span class="section-title" style="color:var(--color-text-muted)">{{ t('notifications.read') }}</span>
         </div>
         <div class="notif-list">
           <div v-for="notif in read" :key="notif.id" class="notif-card notif-read glass-card">
@@ -132,8 +157,8 @@ onMounted(fetchNotifications)
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
             </div>
-            <div class="notif-body" @click="openDetails(notif.vueloRelacionadoId)" style="cursor: pointer;" title="Ver detalles del vuelo">
-              <p class="notif-message read-msg">{{ notif.mensaje || 'Actualización de vuelo' }}</p>
+            <div class="notif-body" @click="openDetails(notif.vueloRelacionadoId)" style="cursor: pointer;" :title="t('notifications.card.title')">
+              <p class="notif-message read-msg">{{ translateMessage(notif.mensaje) || t('flights.card.flight') }}</p>
               <span class="notif-date">{{ formatDate(notif.fechaHoraGenearicion) }}</span>
             </div>
           </div>

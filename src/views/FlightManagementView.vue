@@ -471,6 +471,34 @@ const handleCancelFlight = async () => {
       </Transition>
     </Teleport>
 
+    <!-- Pantalla de carga para importación de Excel -->
+    <Teleport to="body">
+      <Transition name="fade">
+        <div v-if="uploadLoading" class="excel-loading-overlay">
+          <div class="excel-loading-content glass-card">
+            <!-- Animación de Spinner Concetrico y Avión -->
+            <div class="animation-container">
+              <div class="loading-ring-outer"></div>
+              <div class="loading-ring-inner"></div>
+              <div class="plane-icon-wrapper">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="plane-svg">
+                  <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                </svg>
+              </div>
+            </div>
+            
+            <h3 class="loading-title">Procesando Archivo de Vuelos</h3>
+            <p class="loading-subtitle">Estamos importando los vuelos y actualizando el itinerario en tiempo real. Por favor, no cierres esta ventana.</p>
+            
+            <!-- Barra de progreso indeterminada -->
+            <div class="progress-bar-container">
+              <div class="progress-bar-indeterminate"></div>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
     <!-- Header Section -->
     <header class="management-header">
       <div>
@@ -1747,5 +1775,174 @@ const handleCancelFlight = async () => {
   border-radius: 6px;
   display: flex;
   align-items: center;
+}
+
+/* Excel Loading Overlay Styles */
+.excel-loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(11, 15, 25, 0.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+}
+
+.excel-loading-content {
+  background: rgba(17, 24, 39, 0.85);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 20px;
+  padding: 3rem 2.5rem;
+  max-width: 480px;
+  width: 90%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 40px rgba(59, 130, 246, 0.15);
+  animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.animation-container {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-ring-outer {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border: 3px solid transparent;
+  border-top-color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spinClockwise 2s linear infinite;
+}
+
+.loading-ring-inner {
+  position: absolute;
+  width: 80%;
+  height: 80%;
+  border: 3px solid transparent;
+  border-left-color: #10b981;
+  border-right-color: #10b981;
+  border-radius: 50%;
+  animation: spinCounterClockwise 1.5s linear infinite;
+}
+
+.plane-icon-wrapper {
+  color: white;
+  animation: pulsePlane 2s ease-in-out infinite;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.plane-svg {
+  width: 36px;
+  height: 36px;
+  filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.5));
+}
+
+.loading-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.025em;
+  background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.loading-subtitle {
+  font-size: 0.95rem;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  margin-bottom: 2rem;
+}
+
+.progress-bar-container {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 9999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-bar-indeterminate {
+  position: absolute;
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary) 0%, #10b981 100%);
+  width: 40%;
+  border-radius: 9999px;
+  animation: indeterminateProgress 1.8s ease-in-out infinite;
+}
+
+/* Animations */
+@keyframes spinClockwise {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes spinCounterClockwise {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(-360deg); }
+}
+
+@keyframes pulsePlane {
+  0%, 100% {
+    transform: scale(1) translate(0, 0);
+  }
+  50% {
+    transform: scale(1.12) translate(2px, -2px);
+  }
+}
+
+@keyframes scaleIn {
+  0% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes indeterminateProgress {
+  0% {
+    left: -40%;
+  }
+  50% {
+    left: 40%;
+    width: 60%;
+  }
+  100% {
+    left: 100%;
+    width: 20%;
+  }
+}
+
+/* Transitions for Vue */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

@@ -249,7 +249,7 @@ const userInitials = computed(() => {
         </button>
         
         <!-- Opciones de Apariencia -->
-        <div class="settings-appearance">
+        <div v-if="authStore.user?.role === 'Administrador'" class="settings-appearance">
           <span class="theme-label">TEMA DE COLOR</span>
           <div class="theme-dots">
             <button
