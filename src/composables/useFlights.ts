@@ -136,10 +136,16 @@ export function useFlights() {
           uiStatus = 'Cancelled'
         } else if (estadoLower.includes('demora') || estadoLower.includes('delay') || estadoLower.includes('retras')) {
           uiStatus = 'Delayed'
-        } else if (estadoLower.includes('abord') || estadoLower.includes('board')) {
+        } else if (estadoLower.includes('abord') || estadoLower.includes('board') || estadoLower.includes('embarc')) {
           uiStatus = 'Boarding'
         } else if (estadoLower.includes('program') || estadoLower.includes('sched')) {
           uiStatus = 'On Time'
+        } else if (estadoLower.includes('vuelo') || estadoLower.includes('flight') || estadoLower.includes('ruta')) {
+          uiStatus = 'In Flight'
+        } else if (estadoLower.includes('aterriz') || estadoLower.includes('land')) {
+          uiStatus = 'Landed'
+        } else if (estadoLower.includes('complet') || estadoLower.includes('finish') || estadoLower.includes('done')) {
+          uiStatus = 'Completed'
         } else {
           uiStatus = item.estado || 'On Time'
         }
@@ -199,10 +205,16 @@ export function useFlights() {
         uiStatus = 'Cancelled'
       } else if (estadoLower.includes('demora') || estadoLower.includes('delay') || estadoLower.includes('retras')) {
         uiStatus = 'Delayed'
-      } else if (estadoLower.includes('abord') || estadoLower.includes('board')) {
+      } else if (estadoLower.includes('abord') || estadoLower.includes('board') || estadoLower.includes('embarc')) {
         uiStatus = 'Boarding'
       } else if (estadoLower.includes('program') || estadoLower.includes('sched')) {
         uiStatus = 'On Time'
+      } else if (estadoLower.includes('vuelo') || estadoLower.includes('flight') || estadoLower.includes('ruta')) {
+        uiStatus = 'In Flight'
+      } else if (estadoLower.includes('aterriz') || estadoLower.includes('land')) {
+        uiStatus = 'Landed'
+      } else if (estadoLower.includes('complet') || estadoLower.includes('finish') || estadoLower.includes('done')) {
+        uiStatus = 'Completed'
       } else {
         uiStatus = flight.estado || 'On Time'
       }

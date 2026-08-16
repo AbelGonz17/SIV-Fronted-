@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useVisitor } from '../composables/useVisitor'
-import { useTheme } from '../composables/useTheme'
+import { useLanguage } from '../composables/useLanguage'
 import ChangePasswordModal from './ChangePasswordModal.vue'
 import UserProfileModal from './UserProfileModal.vue'
 import { useSignalR } from '../composables/useSignalR'
@@ -14,7 +14,7 @@ const authStore = useAuthStore()
 const layoutStore = useLayoutStore()
 const router = useRouter()
 const { fetchNotifications, notifications, addNotification } = useVisitor()
-const { activeTheme, themeKeys, themes, setTheme } = useTheme()
+const { currentLanguage, setLanguage, t } = useLanguage()
 const { startConnection, stopConnection, onPersonalAlert, offPersonalAlert } = useSignalR()
 
 const unreadCount = computed(() => notifications.value.filter(n => !n.fueLeida).length)
@@ -113,20 +113,20 @@ const initials = computed(() => {
 
     <!-- Navigation -->
     <nav class="visitor-nav">
-      <span class="nav-section-label">NAVEGACIÓN</span>
+      <span class="nav-section-label">{{ t('nav.navigation') }}</span>
 
-      <RouterLink to="/visitante" class="visitor-link" active-class="active">
+      <RouterLink to="/visitante" class="visitor-link" exact-active-class="active">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="link-icon">
           <path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/>
         </svg>
-        <span>Panel de Vuelos</span>
+        <span>{{ t('nav.flights') }}</span>
       </RouterLink>
 
       <RouterLink to="/visitante/seguimientos" class="visitor-link" active-class="active">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="link-icon">
           <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
         </svg>
-        <span>Mis Seguimientos</span>
+        <span>{{ t('nav.following') }}</span>
       </RouterLink>
 
       <RouterLink to="/visitante/notificaciones" class="visitor-link" active-class="active">
@@ -136,8 +136,17 @@ const initials = computed(() => {
           </svg>
           <span v-if="unreadCount > 0" class="notif-badge">{{ unreadCount }}</span>
         </div>
-        <span>Notificaciones</span>
+        <span>{{ t('nav.notifications') }}</span>
       </RouterLink>
+
+      <!-- Configuración (Solo móvil) -->
+      <button @click="showSettingsModal = true" class="visitor-link mobile-only-nav-item">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="link-icon">
+          <circle cx="12" cy="12" r="3" />
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+        </svg>
+        <span>{{ t('nav.settings') }}</span>
+      </button>
     </nav>
 
     <!-- Footer -->
@@ -150,7 +159,7 @@ const initials = computed(() => {
           <circle cx="12" cy="12" r="3" />
           <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
         </svg>
-        Configuración
+        {{ t('nav.settings') }}
       </button>
 
       <!-- Logout -->
@@ -158,7 +167,7 @@ const initials = computed(() => {
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
           <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
         </svg>
-        Cerrar Sesión
+        {{ t('settings.logout.title') }}
       </button>
     </div>
   </aside>
@@ -167,7 +176,8 @@ const initials = computed(() => {
   <div v-if="showSettingsModal" class="modal-backdrop" @click="showSettingsModal = false">
     <div class="modal-container settings-modal glass-card" @click.stop>
       <button class="modal-close" @click="showSettingsModal = false">&times;</button>
-      <h2 class="modal-title">Configuración</h2>
+      <h2 class="modal-title">{{ t('settings.title') }}</h2>
+      <p class="settings-modal-sub" style="color: var(--color-text-muted); font-size: 0.85rem; margin-top: -0.5rem; margin-bottom: 1.5rem;">{{ t('settings.subtitle') }}</p>
       
       <div class="settings-options">
         <button class="settings-option-btn" @click="showSettingsModal = false; showProfileModal = true">
@@ -178,8 +188,8 @@ const initials = computed(() => {
             </svg>
           </div>
           <div class="settings-option-text">
-            <span class="settings-option-title">Ver Perfil</span>
-            <span class="settings-option-desc">Consulta tus datos personales</span>
+            <span class="settings-option-title">{{ t('settings.profile.title') }}</span>
+            <span class="settings-option-desc">{{ t('settings.profile.desc') }}</span>
           </div>
           <svg class="chevron-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
         </button>
@@ -192,25 +202,43 @@ const initials = computed(() => {
             </svg>
           </div>
           <div class="settings-option-text">
-            <span class="settings-option-title">Cambiar Contraseña</span>
-            <span class="settings-option-desc">Actualiza tu clave de acceso</span>
+            <span class="settings-option-title">{{ t('settings.password.title') }}</span>
+            <span class="settings-option-desc">{{ t('settings.password.desc') }}</span>
           </div>
           <svg class="chevron-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
         </button>
-        
-        <!-- Opciones de Apariencia -->
-        <div class="settings-appearance">
-          <span class="theme-label-small">TEMA DE COLOR</span>
-          <div class="theme-dots-row">
-            <button
-              v-for="key in themeKeys"
-              :key="key"
-              class="theme-dot-btn"
-              :class="{ active: activeTheme === key }"
-              :style="{ backgroundColor: themes[key].swatch }"
-              :title="themes[key].label"
-              @click="setTheme(key)"
-            />
+
+        <button class="settings-option-btn logout-option" @click="showSettingsModal = false; handleLogout()">
+          <div class="option-icon-wrapper red-glow">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+          </div>
+          <div class="settings-option-text">
+            <span class="settings-option-title" style="color: #ef4444;">{{ t('settings.logout.title') }}</span>
+            <span class="settings-option-desc">{{ t('settings.logout.desc') }}</span>
+          </div>
+          <svg class="chevron-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
+
+        <!-- Selector de Idioma -->
+        <div class="settings-lang-section">
+          <span class="settings-lang-label">{{ t('settings.lang') }}</span>
+          <div class="settings-lang-row">
+            <button 
+              class="settings-lang-btn" 
+              :class="{ active: currentLanguage === 'es' }" 
+              @click="setLanguage('es')"
+            >
+              ESPAÑOL
+            </button>
+            <button 
+              class="settings-lang-btn" 
+              :class="{ active: currentLanguage === 'en' }" 
+              @click="setLanguage('en')"
+            >
+              ENGLISH
+            </button>
           </div>
         </div>
       </div>
@@ -773,6 +801,26 @@ const initials = computed(() => {
   gap: 0.75rem;
 }
 
+.mobile-only-nav-item {
+  display: none !important;
+  background: transparent;
+  border: none;
+  outline: none;
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+}
+
+.option-icon-wrapper.red-glow {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.settings-option-btn.logout-option:hover {
+  background: rgba(239, 68, 68, 0.04);
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
 @media (max-width: 900px) {
   .visitor-sidebar, .visitor-sidebar.collapsed {
     top: auto;
@@ -828,5 +876,60 @@ const initials = computed(() => {
     width: 14px; height: 14px;
     font-size: 0.55rem;
   }
+
+  .mobile-only-nav-item {
+    display: flex !important;
+  }
+}
+
+.settings-lang-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem 0 0.5rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  margin-top: 0.5rem;
+}
+
+.settings-lang-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.settings-lang-row {
+  display: flex;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.settings-lang-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  padding: 0.6rem;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.settings-lang-btn.active {
+  background: var(--color-primary);
+  color: white;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.settings-lang-btn:hover:not(.active) {
+  color: white;
+  background: rgba(255, 255, 255, 0.03);
 }
 </style>

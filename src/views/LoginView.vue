@@ -2,9 +2,11 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useLanguage } from '../composables/useLanguage'
 
 const authStore = useAuthStore()
 const router = useRouter()
+const { t } = useLanguage()
 
 const email = ref('')
 const password = ref('')
@@ -41,8 +43,8 @@ const handleLogin = async () => {
             <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-1.1.1-1.3.6l-.3.7c-.2.5 0 1.1.4 1.4L9 12l-3 3-2.5-.5c-.4-.1-.8.1-1 .4l-.3.5c-.2.4-.1.9.3 1.1L6 18l1.5 3.5c.2.4.7.5 1.1.3l.5-.3c.3-.2.5-.6.4-1L9 18l3-3 3.1 5.4c.3.5.9.6 1.4.4l.7-.3c.5-.2.7-.8.6-1.3z" />
           </svg>
         </div>
-        <h1 class="login-title">Bienvenido a SkyFlow</h1>
-        <p class="login-subtitle">Ingresa tus credenciales para acceder a la terminal de vuelos.</p>
+        <h1 class="login-title">{{ t('login.title') }}</h1>
+        <p class="login-subtitle">{{ t('login.subtitle') }}</p>
       </div>
 
       <!-- Error Alerts -->
@@ -61,7 +63,7 @@ const handleLogin = async () => {
       <form @submit.prevent="handleLogin" class="login-form">
         <!-- Email Input -->
         <div class="form-group">
-          <label class="form-label" for="login-email">Correo Electrónico</label>
+          <label class="form-label" for="login-email">{{ t('login.email.label') }}</label>
           <div class="input-wrapper">
             <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
@@ -81,7 +83,7 @@ const handleLogin = async () => {
 
         <!-- Password Input -->
         <div class="form-group">
-          <label class="form-label" for="login-password">Contraseña</label>
+          <label class="form-label" for="login-password">{{ t('login.password.label') }}</label>
           <div class="input-wrapper">
             <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
@@ -116,23 +118,23 @@ const handleLogin = async () => {
         </div>
 
         <!-- Form Actions Row (Remember Me & Forgot Password) -->
-        <div class="form-actions-row" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <div class="form-actions-row">
           <!-- Remember Me Checkbox -->
-          <div class="remember-me-container" style="display: flex; align-items: center;">
+          <div class="remember-me-container">
             <input 
               type="checkbox" 
               id="remember-me" 
               v-model="rememberMe"
-              style="margin-right: 0.5rem; accent-color: #3b82f6; width: auto; height: auto; cursor: pointer;"
+              class="remember-checkbox"
             >
-            <label for="remember-me" style="color: #cbd5e1; font-size: 0.85rem; cursor: pointer; display: inline-block; margin: 0;">
-              Mantener sesión iniciada
+            <label for="remember-me" class="remember-label">
+              {{ t('login.rememberMe') }}
             </label>
           </div>
           
           <!-- Forgot Password link -->
-          <router-link to="/olvide-contrasena" style="color: #94a3b8; font-size: 0.8rem; text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='#60a5fa'" onmouseout="this.style.color='#94a3b8'">
-            ¿Olvidaste tu contraseña?
+          <router-link to="/olvide-contrasena" class="forgot-password-link">
+            {{ t('login.forgotPassword') }}
           </router-link>
         </div>
 
@@ -144,13 +146,13 @@ const handleLogin = async () => {
           style="display: flex; gap: 0.5rem; align-items: center; justify-content: center;"
         >
           <span v-if="authStore.loading" class="login-spinner"></span>
-          <span>{{ authStore.loading ? 'Iniciando...' : 'Iniciar Sesión' }}</span>
+          <span>{{ authStore.loading ? t('login.btn.loading') : t('login.btn.submit') }}</span>
         </button>
       </form>
 
       <!-- Register link -->
       <div class="register-link-section">
-        <p>¿No tienes cuenta? <router-link to="/registro" class="register-link">Regístrate aquí</router-link></p>
+        <p>{{ t('login.register.prompt') }} <router-link to="/registro" class="register-link">{{ t('login.register.action') }}</router-link></p>
       </div>
 
       <div class="back-link-section">
@@ -159,7 +161,7 @@ const handleLogin = async () => {
             <line x1="19" y1="12" x2="5" y2="12"></line>
             <polyline points="12 19 5 12 12 5"></polyline>
           </svg>
-          Volver al Portal Público
+          {{ t('login.backToPublic') }}
         </router-link>
       </div>
     </div>
@@ -440,5 +442,49 @@ const handleLogin = async () => {
 }
 .back-link:hover {
   color: white;
+}
+
+.form-actions-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.remember-me-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.remember-checkbox {
+  accent-color: #3b82f6;
+  width: auto;
+  height: auto;
+  cursor: pointer;
+  margin: 0;
+}
+
+.remember-label {
+  color: #cbd5e1;
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: inline-block;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.forgot-password-link {
+  color: #94a3b8;
+  font-size: 0.8rem;
+  text-decoration: none;
+  transition: color 0.2s;
+  white-space: nowrap;
+}
+
+.forgot-password-link:hover {
+  color: #60a5fa;
 }
 </style>

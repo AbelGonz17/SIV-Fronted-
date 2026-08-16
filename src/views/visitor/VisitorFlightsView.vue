@@ -3,9 +3,11 @@ import { onMounted, ref, computed } from 'vue'
 import { useFlights, getAirportCode } from '../../composables/useFlights'
 import { useVisitor } from '../../composables/useVisitor'
 import VisitorFlightModal from '../../components/VisitorFlightModal.vue'
+import { useLanguage } from '../../composables/useLanguage'
 
 const { flights, loading, error, searchFilter, filteredFlights, fetchFlights, fetchFlightDetails } = useFlights()
 const { myFlights, followFlight, unfollowFlight, fetchMyFlights } = useVisitor()
+const { t } = useLanguage()
 
 const toast = ref({ show: false, message: '', type: 'success' })
 const showToast = (message: string, type = 'success') => {
@@ -80,23 +82,23 @@ const statusClass = (status: any) => {
   if (s.includes('delay') || s.includes('demora') || s.includes('retras')) return 'badge-delayed'
   if (s.includes('board') || s.includes('abord') || s.includes('embarc')) return 'badge-boarding'
   if (s.includes('adelant') || s.includes('advanc')) return 'badge-advanced'
-  if (s.includes('aterriz') || s.includes('land')) return 'badge-aterrizado'
-  if (s.includes('complet') || s.includes('finish')) return 'badge-completado'
-  if (s.includes('vuelo') || s.includes('flight')) return 'badge-envuelo'
+  if (s.includes('vuelo') || s.includes('flight') || s.includes('ruta')) return 'badge-inflight'
+  if (s.includes('aterriz') || s.includes('land')) return 'badge-landed'
+  if (s.includes('complet') || s.includes('finish') || s.includes('done')) return 'badge-completed'
   return 'badge-ontime'
 }
 
 const statusLabel = (status: any) => {
-  if (!status) return 'Programado'
+  if (!status) return t('status.ontime')
   const s = status.toLowerCase()
-  if (s.includes('cancel')) return 'Cancelado'
-  if (s.includes('delay') || s.includes('demora') || s.includes('retras')) return 'Demorado'
-  if (s.includes('board') || s.includes('abord') || s.includes('embarc')) return 'Embarcando'
-  if (s.includes('adelant') || s.includes('advanc')) return 'Adelantado'
-  if (s.includes('aterriz') || s.includes('land')) return 'Aterrizado'
-  if (s.includes('complet') || s.includes('finish')) return 'Completado'
-  if (s.includes('vuelo') || s.includes('flight')) return 'En Vuelo'
-  return 'Programado'
+  if (s.includes('cancel')) return t('status.cancelled')
+  if (s.includes('delay') || s.includes('demora') || s.includes('retras')) return t('status.delayed')
+  if (s.includes('board') || s.includes('abord') || s.includes('embarc')) return t('status.boarding')
+  if (s.includes('adelant') || s.includes('advanc')) return t('status.advanced')
+  if (s.includes('vuelo') || s.includes('flight') || s.includes('ruta')) return t('status.inflight')
+  if (s.includes('aterriz') || s.includes('land')) return t('status.landed')
+  if (s.includes('complet') || s.includes('finish') || s.includes('done')) return t('status.completed')
+  return t('status.ontime')
 }
 
 const isFinalStatus = (status: any) => {
@@ -149,22 +151,22 @@ const changeTab = async (tab: any) => {
     <!-- Header -->
     <header class="visitor-header">
       <div class="visitor-header-text">
-        <h1 class="visitor-title">Panel de Vuelos</h1>
-        <p class="visitor-subtitle">Consulta vuelos en tiempo real y sigue los que te interesen.</p>
+        <h1 class="visitor-title">{{ t('flights.title') }}</h1>
+        <p class="visitor-subtitle">{{ t('flights.subtitle') }}</p>
       </div>
     </header>
 
     <!-- Tabs + Search -->
     <div class="controls-bar glass-card">
       <div class="tabs">
-        <button :class="['tab-btn', { active: activeTab === 'all' }]" @click="changeTab('all')">Todos</button>
+        <button :class="['tab-btn', { active: activeTab === 'all' }]" @click="changeTab('all')">{{ t('flights.tab.all') }}</button>
         <button :class="['tab-btn', { active: activeTab === 'departures' }]" @click="changeTab('departures')">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="margin-right:4px"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>
-          Salidas
+          {{ t('flights.tab.departures') }}
         </button>
         <button :class="['tab-btn', { active: activeTab === 'arrivals' }]" @click="changeTab('arrivals')">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="margin-right:4px; transform:rotate(180deg)"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>
-          Llegadas
+          {{ t('flights.tab.arrivals') }}
         </button>
       </div>
       <div class="search-bar-wrap date-filter" style="flex: 0 1 auto;">
@@ -174,14 +176,14 @@ const changeTab = async (tab: any) => {
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="search-ico">
           <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
         </svg>
-        <input v-model="searchText" type="text" class="form-input search-inp" placeholder="Vuelo, aerolínea, origen, destino..." />
+        <input v-model="searchText" type="text" class="form-input search-inp" :placeholder="t('flights.search')" />
       </div>
     </div>
 
     <!-- Flights Grid -->
     <div v-if="loading" class="loading-state">
       <div class="pulse-loader"></div>
-      <p>Cargando vuelos...</p>
+      <p>{{ t('fids.loading') }}</p>
     </div>
 
     <div v-else-if="error" class="error-state glass-card">
@@ -244,10 +246,10 @@ const changeTab = async (tab: any) => {
           <div class="fc-footer">
             <div class="fc-meta">
               <span class="fc-meta-item highlight-text">
-                Vuelo: {{ flight.flightNumber }}
+                {{ t('flights.card.flight') }} {{ flight.flightNumber }}
               </span>
               <span class="fc-meta-item highlight-text">
-                Puerta: {{ flight.gate !== 'N/A' ? flight.gate : '--' }}
+                {{ t('flights.card.gate') }} {{ flight.gate !== 'N/A' ? flight.gate : '--' }}
               </span>
             </div>
 
@@ -259,12 +261,21 @@ const changeTab = async (tab: any) => {
               class="follow-btn following"
             >
               <span class="btn-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+                <svg v-if="actionLoading === flight.id" class="spinner-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" width="14" height="14">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" style="opacity: 0.25;"></circle>
+                  <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" style="opacity: 0.85;"></path>
+                </svg>
+                <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
                   <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                 </svg>
               </span>
-              <span class="btn-text">{{ actionLoading === flight.id ? '...' : 'Siguiendo' }}</span>
-              <span class="btn-text-hover">Dejar de seguir</span>
+              <template v-if="actionLoading === flight.id">
+                <span class="btn-text">{{ t('flights.follow.loading.unfollow') }}</span>
+              </template>
+              <template v-else>
+                <span class="btn-text">{{ t('flights.follow.btn.following') }}</span>
+                <span class="btn-text-hover">{{ t('flights.follow.btn.unfollow') }}</span>
+              </template>
             </button>
             <button
               v-else-if="isFinalStatus(flight.status)"
@@ -282,11 +293,15 @@ const changeTab = async (tab: any) => {
               class="follow-btn"
             >
               <span class="btn-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                <svg v-if="actionLoading === flight.id" class="spinner-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" width="14" height="14">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" style="opacity: 0.25;"></circle>
+                  <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" style="opacity: 0.85;"></path>
+                </svg>
+                <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
                   <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                 </svg>
               </span>
-              <span class="btn-text">{{ actionLoading === flight.id ? '...' : 'Seguir' }}</span>
+              <span class="btn-text">{{ actionLoading === flight.id ? t('flights.follow.loading.follow') : t('flights.follow.btn') }}</span>
             </button>
           </div>
         </div>
@@ -438,10 +453,10 @@ const changeTab = async (tab: any) => {
 .badge-delayed  { background: rgba(245,158,11,0.12); color: #fbbf24; }
 .badge-cancelled{ background: rgba(239,68,68,0.12);  color: #f87171; }
 .badge-boarding { background: rgba(139,92,246,0.12); color: #c4b5fd; }
-.badge-aterrizado { background: rgba(236,72,153,0.12); color: #f472b6; }
-.badge-completado { background: rgba(16,185,129,0.12); color: #34d399; }
-.badge-envuelo    { background: rgba(59,130,246,0.12); color: #60a5fa; }
-.badge-advanced   { background: rgba(14, 165, 233, 0.12); color: #38bdf8; }
+.badge-inflight  { background: rgba(59,130,246,0.12);  color: #60a5fa; }
+.badge-landed    { background: rgba(236,72,153,0.12);  color: #f472b6; }
+.badge-completed { background: rgba(20,184,166,0.12);  color: #2dd4bf; }
+.badge-advanced  { background: rgba(14,165,233,0.12);  color: #38bdf8; }
 
 /* Route Vertical Timeline Layout */
 .fc-route-timeline {
@@ -574,6 +589,10 @@ const changeTab = async (tab: any) => {
   white-space: nowrap;
   position: relative;
   overflow: hidden;
+}
+
+.spinner-spin {
+  animation: spin 0.8s linear infinite;
 }
 
 .btn-icon { display: flex; align-items: center; justify-content: center; }

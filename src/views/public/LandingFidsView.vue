@@ -2,9 +2,11 @@
 import { onMounted, onUnmounted, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useFlights, getAirportCode } from '../../composables/useFlights'
+import { useLanguage } from '../../composables/useLanguage'
 
 const router = useRouter()
 const { flights, loading, error, searchFilter, fetchFlights } = useFlights()
+const { currentLanguage, setLanguage, t } = useLanguage()
 let refreshInterval: any = null
 
 const showCodeModal = ref(false)
@@ -20,6 +22,23 @@ const verifyCode = () => {
     router.push('/intranet/login')
   } else {
     codeError.value = true
+  }
+}
+
+const logoClickCount = ref(0)
+let logoClickTimeout: any = null
+
+const handleLogoClick = () => {
+  logoClickCount.value++
+  if (logoClickTimeout) clearTimeout(logoClickTimeout)
+  
+  if (logoClickCount.value >= 3) {
+    showCodeModal.value = true
+    logoClickCount.value = 0
+  } else {
+    logoClickTimeout = setTimeout(() => {
+      logoClickCount.value = 0
+    }, 1500)
   }
 }
 
@@ -54,17 +73,32 @@ const statusClass = (status: string) => {
   const s = status.toLowerCase()
   if (s.includes('cancel')) return 'status-cancelled'
   if (s.includes('delay') || s.includes('demora') || s.includes('retras')) return 'status-delayed'
-  if (s.includes('board') || s.includes('abord')) return 'status-boarding'
+  if (s.includes('board') || s.includes('abord') || s.includes('embarc')) return 'status-boarding'
   if (s.includes('adelant') || s.includes('advanc')) return 'status-advanced'
+  if (s.includes('vuelo') || s.includes('flight') || s.includes('ruta')) return 'status-inflight'
+  if (s.includes('aterriz') || s.includes('land')) return 'status-landed'
+  if (s.includes('complet') || s.includes('finish') || s.includes('done')) return 'status-completed'
   return 'status-ontime'
 }
 
 const statusLabel = (status: string) => {
   if (!status) return ''
-  return status.toUpperCase()
+  const s = status.toLowerCase()
+  if (s.includes('cancel')) return t('status.cancelled')
+  if (s.includes('delay') || s.includes('demora') || s.includes('retras')) return t('status.delayed')
+  if (s.includes('board') || s.includes('abord') || s.includes('embarc')) return t('status.boarding')
+  if (s.includes('adelant') || s.includes('advanc')) return t('status.advanced')
+  if (s.includes('vuelo') || s.includes('flight') || s.includes('ruta')) return t('status.inflight')
+  if (s.includes('aterriz') || s.includes('land')) return t('status.landed')
+  if (s.includes('complet') || s.includes('finish') || s.includes('done')) return t('status.completed')
+  if (s.includes('program') || s.includes('sched')) return t('status.scheduled')
+  return t('status.ontime')
 }
 
-const currentDate = ref(new Date().toLocaleDateString('es-DO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }))
+const currentDate = computed(() => {
+  const locale = currentLanguage.value === 'es' ? 'es-DO' : 'en-US'
+  return new Date().toLocaleDateString(locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+})
 const currentTime = ref(new Date().toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }))
 
 setInterval(() => {
@@ -77,7 +111,7 @@ setInterval(() => {
   <div class="fids-layout">
     <!-- FIDS Header -->
     <header class="fids-header">
-      <div class="fids-brand">
+      <div class="fids-brand" @click="handleLogoClick" style="cursor: pointer; user-select: none;">
         <div class="fids-logo">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M22 2L11 13" />
@@ -85,8 +119,8 @@ setInterval(() => {
           </svg>
         </div>
         <div class="fids-title-group">
-          <h1 class="fids-title">SkyFlow</h1>
-          <span class="fids-subtitle">FLIGHT INFORMATION DISPLAY SYSTEM</span>
+          <h1 class="fids-title">{{ t('fids.title') }}</h1>
+          <span class="fids-subtitle">{{ t('fids.subtitle') }}</span>
         </div>
       </div>
       
@@ -96,16 +130,21 @@ setInterval(() => {
       </div>
 
       <div class="fids-actions">
-        <button class="fids-btn-intranet" @click="showCodeModal = true">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-          </svg>
-          Acceso Intranet
-        </button>
+        <!-- Selector de Idioma -->
+        <div class="lang-switch-fids">
+          <button 
+            :class="{ active: currentLanguage === 'es' }" 
+            @click="setLanguage('es')"
+          >ES</button>
+          <button 
+            :class="{ active: currentLanguage === 'en' }" 
+            @click="setLanguage('en')"
+          >EN</button>
+        </div>
+
         <button class="fids-btn-login" @click="router.push('/login')">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
-          Ingresar / Seguir Vuelos
+          {{ t('fids.btn.login') }}
         </button>
       </div>
     </header>
@@ -114,50 +153,52 @@ setInterval(() => {
     <main class="fids-main">
       <div v-if="loading && flights.length === 0" class="fids-loading">
         <div class="pulse-loader"></div>
-        <p>CARGANDO INFORMACIÓN DE VUELOS...</p>
+        <p>{{ t('fids.loading') }}</p>
       </div>
 
       <div v-else-if="error" class="fids-error">
-        <p>ERROR DE COMUNICACIÓN CON LA TORRE DE CONTROL</p>
+        <p>{{ t('fids.error') }}</p>
         <p class="error-detail">{{ error }}</p>
       </div>
 
       <div v-else class="fids-board-wrapper">
-        <table class="fids-table">
-          <thead>
-            <tr>
-              <th style="width: 15%">AEROLÍNEA</th>
-              <th style="width: 10%">VUELO</th>
-              <th style="width: 15%">ORIGEN</th>
-              <th style="width: 15%">DESTINO</th>
-              <th style="width: 15%">HORA</th>
-              <th style="width: 10%">PUERTA</th>
-              <th style="width: 20%">ESTADO</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="flight in flights" :key="flight.id" class="fids-row">
-              <td class="col-airline">
-                <span class="airline-text">{{ flight.aerolineaNombre }}</span>
-              </td>
-              <td class="col-flight">{{ flight.numeroVuelo }}</td>
-              <td class="col-airport">{{ getAirportCode(flight.origen) }}</td>
-              <td class="col-airport">{{ getAirportCode(flight.destino) }}</td>
-              <td class="col-time">{{ formatTime(flight.horarioEstimado || flight.horarioPlanificado) }}</td>
-              <td class="col-gate">{{ flight.puertaEmbarque && flight.puertaEmbarque !== 'N/A' ? flight.puertaEmbarque : '--' }}</td>
-              <td class="col-status">
-                <span :class="['status-box', statusClass(flight.estado)]">
-                  {{ statusLabel(flight.estado) }}
-                </span>
-              </td>
-            </tr>
-            <tr v-if="flights.length === 0">
-              <td colspan="7" class="fids-empty">
-                NO HAY VUELOS PROGRAMADOS EN ESTE MOMENTO
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="fids-table-container">
+          <table class="fids-table">
+            <thead>
+              <tr>
+                <th style="width: 15%">{{ t('fids.col.airline') }}</th>
+                <th style="width: 10%">{{ t('fids.col.flight') }}</th>
+                <th style="width: 15%">{{ t('fids.col.origin') }}</th>
+                <th style="width: 15%">{{ t('fids.col.destination') }}</th>
+                <th style="width: 15%">{{ t('fids.col.time') }}</th>
+                <th style="width: 10%">{{ t('fids.col.gate') }}</th>
+                <th style="width: 20%">{{ t('fids.col.status') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="flight in flights" :key="flight.id" class="fids-row">
+                <td class="col-airline">
+                  <span class="airline-text">{{ flight.aerolineaNombre }}</span>
+                </td>
+                <td class="col-flight">{{ flight.numeroVuelo }}</td>
+                <td class="col-airport">{{ getAirportCode(flight.origen) }}</td>
+                <td class="col-airport">{{ getAirportCode(flight.destino) }}</td>
+                <td class="col-time">{{ formatTime(flight.horarioEstimado || flight.horarioPlanificado) }}</td>
+                <td class="col-gate">{{ flight.puertaEmbarque && flight.puertaEmbarque !== 'N/A' ? flight.puertaEmbarque : '--' }}</td>
+                <td class="col-status">
+                  <span :class="['status-box', statusClass(flight.estado)]">
+                    {{ statusLabel(flight.estado) }}
+                  </span>
+                </td>
+              </tr>
+              <tr v-if="flights.length === 0">
+                <td colspan="7" class="fids-empty">
+                  {{ t('fids.empty') }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </main>
 
@@ -171,20 +212,20 @@ setInterval(() => {
             <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
           </svg>
         </div>
-        <h2 class="modal-title">Acceso Restringido</h2>
-        <p class="modal-subtitle">Ingrese el código de acceso para continuar a la Intranet.</p>
+        <h2 class="modal-title">{{ t('fids.modal.title') }}</h2>
+        <p class="modal-subtitle">{{ t('fids.modal.subtitle') }}</p>
         
         <form @submit.prevent="verifyCode" class="code-form">
           <input 
             type="password" 
             v-model="secretCodeInput" 
-            placeholder="Código secreto" 
+            :placeholder="t('fids.modal.placeholder')" 
             class="code-input"
             :class="{ 'input-error': codeError }"
             autofocus
           />
-          <span v-if="codeError" class="error-msg">Código incorrecto. Intente nuevamente.</span>
-          <button type="submit" class="btn-verify">Verificar</button>
+          <span v-if="codeError" class="error-msg">{{ t('fids.modal.error') }}</span>
+          <button type="submit" class="btn-verify">{{ t('fids.modal.btn') }}</button>
         </form>
       </div>
     </div>
@@ -276,6 +317,37 @@ setInterval(() => {
   align-items: center;
 }
 
+.lang-switch-fids {
+  display: flex;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 2px;
+  margin-right: 1rem;
+}
+
+.lang-switch-fids button {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.lang-switch-fids button.active {
+  background: #3b82f6;
+  color: white;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+}
+
+.lang-switch-fids button:hover:not(.active) {
+  color: white;
+}
+
 .fids-btn-login {
   display: flex;
   align-items: center;
@@ -318,6 +390,12 @@ setInterval(() => {
   display: flex;
   flex-direction: column;
   box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+}
+
+.fids-table-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .fids-table {
@@ -386,6 +464,9 @@ setInterval(() => {
 .status-cancelled { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
 .status-boarding { background: rgba(139, 92, 246, 0.15); color: #c4b5fd; border: 1px solid rgba(139, 92, 246, 0.3); animation: pulse 2s infinite; }
 .status-advanced { background: rgba(56, 189, 248, 0.15); color: #7dd3fc; border: 1px solid rgba(56, 189, 248, 0.3); }
+.status-inflight { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+.status-landed { background: rgba(236, 72, 153, 0.15); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.3); }
+.status-completed { background: rgba(20, 184, 166, 0.15); color: #2dd4bf; border: 1px solid rgba(20, 184, 166, 0.3); }
 
 @keyframes blink {
   0%, 100% { opacity: 1; }
@@ -428,11 +509,15 @@ setInterval(() => {
 }
 
 @media (max-width: 1024px) {
-  .fids-header { flex-direction: column; gap: 1.5rem; }
-  .fids-actions { flex-direction: column; gap: 0.5rem; width: 100%; }
-  .fids-actions button { width: 100%; justify-content: center; }
+  .fids-header { flex-direction: column; gap: 1.5rem; text-align: center; }
+  .fids-brand { flex-direction: column; align-items: center; }
+  .fids-actions { flex-direction: column; gap: 0.75rem; width: 100%; max-width: 360px; margin: 0 auto; }
+  .fids-actions button { width: 100%; justify-content: center; margin-right: 0 !important; }
+  .lang-switch-fids { margin-right: 0; width: 100%; justify-content: center; }
+  .lang-switch-fids button { flex: 1; text-align: center; }
   .fids-main { padding: 1rem; }
   .fids-table th, .fids-table td { padding: 0.75rem 0.5rem; font-size: 0.9rem; }
+  .fids-table { min-width: 700px; }
 }
 
 /* Secret Code Modal Styles */

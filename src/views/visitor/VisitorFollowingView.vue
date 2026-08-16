@@ -2,8 +2,10 @@
 import { onMounted, ref } from 'vue'
 import { useVisitor } from '../../composables/useVisitor'
 import { getAirportCode } from '../../composables/useFlights'
+import { useLanguage } from '../../composables/useLanguage'
 
 const { myFlights, loadingFlights, fetchMyFlights, unfollowFlight } = useVisitor()
+const { t } = useLanguage()
 
 const unfollowingId = ref(null)
 const toast = ref({ show: false, message: '', type: 'success' })
@@ -48,25 +50,26 @@ const getFlightTimes = (flight: any) => {
 
 const statusLabel = (estado: string) => {
   const e = (estado || '').toLowerCase()
-  if (e.includes('cancel')) return 'Cancelado'
-  if (e.includes('retras') || e.includes('demor')) return 'Demorado'
-  if (e.includes('abord') || e.includes('embarc')) return 'Embarcando'
-  if (e.includes('adelant') || e.includes('advanc')) return 'Adelantado'
-  if (e.includes('aterriz') || e.includes('land')) return 'Aterrizado'
-  if (e.includes('complet') || e.includes('finish')) return 'Completado'
-  if (e.includes('vuelo') || e.includes('flight')) return 'En Vuelo'
-  return 'Programado'
+  if (e.includes('cancel')) return t('status.cancelled')
+  if (e.includes('retras') || e.includes('demor') || e.includes('delay')) return t('status.delayed')
+  if (e.includes('abord') || e.includes('embarc') || e.includes('board')) return t('status.boarding')
+  if (e.includes('vuelo') || e.includes('flight') || e.includes('ruta')) return t('status.inflight')
+  if (e.includes('aterriz') || e.includes('land')) return t('status.landed')
+  if (e.includes('complet') || e.includes('finish') || e.includes('done')) return t('status.completed')
+  if (e.includes('adelant') || e.includes('advanc')) return t('status.advanced')
+  if (e.includes('program') || e.includes('sched')) return t('status.scheduled')
+  return t('status.ontime')
 }
 
 const statusClass = (estado: string) => {
   const e = (estado || '').toLowerCase()
   if (e.includes('cancel')) return 'badge-cancelled'
-  if (e.includes('retras') || e.includes('demor')) return 'badge-delayed'
-  if (e.includes('abord') || e.includes('embarc')) return 'badge-boarding'
+  if (e.includes('retras') || e.includes('demor') || e.includes('delay')) return 'badge-delayed'
+  if (e.includes('abord') || e.includes('embarc') || e.includes('board')) return 'badge-boarding'
+  if (e.includes('vuelo') || e.includes('flight') || e.includes('ruta')) return 'badge-inflight'
+  if (e.includes('aterriz') || e.includes('land')) return 'badge-landed'
+  if (e.includes('complet') || e.includes('finish') || e.includes('done')) return 'badge-completed'
   if (e.includes('adelant') || e.includes('advanc')) return 'badge-advanced'
-  if (e.includes('aterriz') || e.includes('land')) return 'badge-aterrizado'
-  if (e.includes('complet') || e.includes('finish')) return 'badge-completado'
-  if (e.includes('vuelo') || e.includes('flight')) return 'badge-envuelo'
   return 'badge-ontime'
 }
 
@@ -103,18 +106,18 @@ onMounted(fetchMyFlights)
     <!-- Header -->
     <header class="following-header">
       <div>
-        <h1 class="page-title">Mis Seguimientos</h1>
-        <p class="page-sub">Vuelos que estás monitoreando activamente.</p>
+        <h1 class="page-title">{{ t('following.title') }}</h1>
+        <p class="page-sub">{{ t('following.subtitle') }}</p>
       </div>
       <div class="flights-count-badge" v-if="myFlights.length > 0">
-        {{ myFlights.length }} vuelo{{ myFlights.length !== 1 ? 's' : '' }}
+        {{ myFlights.length }} {{ myFlights.length !== 1 ? t('following.count.plural') : t('following.count.single') }}
       </div>
     </header>
 
     <!-- Loading -->
     <div v-if="loadingFlights" class="loading-state">
       <div class="pulse-loader"></div>
-      <p>Cargando tus vuelos...</p>
+      <p>{{ t('fids.loading') }}</p>
     </div>
 
     <!-- Empty State -->
@@ -124,10 +127,10 @@ onMounted(fetchMyFlights)
           <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
         </svg>
       </div>
-      <h3 class="empty-title">Aún no sigues ningún vuelo</h3>
-      <p class="empty-desc">Explora el Panel de Vuelos y presiona "Seguir" para recibir actualizaciones aquí.</p>
+      <h3 class="empty-title">{{ t('following.empty.title') }}</h3>
+      <p class="empty-desc">{{ t('following.empty.desc') }}</p>
       <router-link to="/visitante" class="empty-action-btn">
-        Ir al Panel de Vuelos
+        {{ t('following.empty.action') }}
       </router-link>
     </div>
 
@@ -147,7 +150,7 @@ onMounted(fetchMyFlights)
             </span>
           </div>
 
-          <!-- Route (Fully Vertical Timeline) -->
+          <!-- Route (Vertical Timeline) -->
           <div class="fc-route-timeline">
             <!-- Origin -->
             <div class="tl-step">
@@ -158,7 +161,7 @@ onMounted(fetchMyFlights)
               <div class="tl-content">
                 <div class="tl-header">
                   <span class="tl-code">{{ getAirportCode(flight.origen) }}</span>
-                  <span class="tl-time">{{ formatTime(getFlightTimes(flight).dep) }}</span>
+                  <span class="tl-time">{{ formatTime(flight.horarioSalida) }}</span>
                 </div>
                 <span class="tl-name" :title="flight.origen">{{ flight.origen }}</span>
               </div>
@@ -172,7 +175,7 @@ onMounted(fetchMyFlights)
               <div class="tl-content">
                 <div class="tl-header">
                   <span class="tl-code">{{ getAirportCode(flight.destino) }}</span>
-                  <span class="tl-time">{{ formatTime(getFlightTimes(flight).arr) }}</span>
+                  <span class="tl-time">{{ formatTime(flight.horarioLlegada) }}</span>
                 </div>
                 <span class="tl-name" :title="flight.destino">{{ flight.destino }}</span>
               </div>
@@ -183,10 +186,10 @@ onMounted(fetchMyFlights)
           <div class="fc-footer">
             <div class="fc-meta">
               <span class="fc-meta-item highlight-text">
-                Vuelo: {{ flight.numeroVuelo }}
+                {{ t('flights.card.flight') }} {{ flight.numeroVuelo }}
               </span>
               <span class="fc-meta-item highlight-text">
-                Puerta: {{ flight.puerta && flight.puerta !== 'N/A' ? flight.puerta : '--' }}
+                {{ t('flights.card.gate') }} {{ flight.puerta && flight.puerta !== 'N/A' ? flight.puerta : '--' }}
               </span>
             </div>
 
@@ -197,14 +200,17 @@ onMounted(fetchMyFlights)
               class="follow-btn following"
             >
               <span class="btn-icon">
-                <svg v-if="unfollowingId !== flight.vueloId" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+                <svg v-if="unfollowingId === flight.vueloId" class="spinner-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" width="14" height="14">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" style="opacity: 0.25;"></circle>
+                  <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" style="opacity: 0.85;"></path>
+                </svg>
+                <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
                   <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/>
                 </svg>
-                <div v-else class="mini-spinner"></div>
               </span>
-              <span class="btn-text-hover" v-if="unfollowingId !== flight.vueloId">Dejar de seguir</span>
-              <span class="btn-text" v-if="unfollowingId !== flight.vueloId">Siguiendo</span>
-              <span class="btn-text" v-if="unfollowingId === flight.vueloId">Eliminando...</span>
+              <span class="btn-text-hover" v-if="unfollowingId !== flight.vueloId">{{ t('flights.follow.btn.unfollow') }}</span>
+              <span class="btn-text" v-if="unfollowingId !== flight.vueloId">{{ t('flights.follow.btn.following') }}</span>
+              <span class="btn-text" v-if="unfollowingId === flight.vueloId">{{ t('following.loading.unfollow') }}</span>
             </button>
           </div>
           
@@ -236,6 +242,8 @@ onMounted(fetchMyFlights)
   border-radius: 20px;
   font-size: 0.82rem;
   font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* Empty State */
@@ -367,10 +375,10 @@ onMounted(fetchMyFlights)
 .badge-delayed  { background: rgba(245,158,11,0.12); color: #fbbf24; }
 .badge-cancelled{ background: rgba(239,68,68,0.12);  color: #f87171; }
 .badge-boarding { background: rgba(139,92,246,0.12); color: #c4b5fd; }
-.badge-aterrizado { background: rgba(236,72,153,0.12); color: #f472b6; }
-.badge-completado { background: rgba(16,185,129,0.12); color: #34d399; }
-.badge-envuelo    { background: rgba(59,130,246,0.12); color: #60a5fa; }
-.badge-advanced   { background: rgba(14,165,233,0.12); color: #38bdf8; }
+.badge-inflight  { background: rgba(59,130,246,0.12);  color: #60a5fa; }
+.badge-landed    { background: rgba(236,72,153,0.12);  color: #f472b6; }
+.badge-completed { background: rgba(20,184,166,0.12);  color: #2dd4bf; }
+.badge-advanced  { background: rgba(14,165,233,0.12);  color: #38bdf8; }
 
 /* Route Vertical Timeline Layout */
 .fc-route-timeline {
@@ -533,12 +541,12 @@ onMounted(fetchMyFlights)
   display: inline;
 }
 
-.mini-spinner {
-  width: 13px; height: 13px;
-  border: 2px solid rgba(248,113,113,0.3);
-  border-top-color: #f87171;
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
+.spinner-spin {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 /* Toast */
@@ -563,5 +571,16 @@ onMounted(fetchMyFlights)
 .list-fade-enter-from   { opacity: 0; transform: translateY(10px); }
 .list-fade-leave-to     { opacity: 0; transform: scale(0.95); }
 
-@media (max-width: 640px) { .following-list { grid-template-columns: 1fr; } }
+@media (max-width: 640px) {
+  .following-list { grid-template-columns: 1fr; }
+  .following-header {
+    gap: 0.75rem;
+  }
+  .page-title {
+    font-size: 1.6rem;
+  }
+  .page-sub {
+    font-size: 0.85rem;
+  }
+}
 </style>
